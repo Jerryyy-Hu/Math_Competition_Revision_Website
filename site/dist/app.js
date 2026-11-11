@@ -1,6 +1,7 @@
 import { collections, allTopics, topicMap, escapeHtml as e, icons } from './library.js';
 import * as views from './views.js';
 import { getMaterials, saveMaterial, readPreferences, writePreferences, exportMaterials, importMaterials } from './storage.js';
+import { createNavigation } from './navigation.js';
 
 const main = document.querySelector('main');
 const preferences = readPreferences();
@@ -11,6 +12,7 @@ let routeVersion = 0;
 let pageAnimation;
 let toastTimer;
 const dialogVersions = new WeakMap();
+const navigation = createNavigation();
 
 function toast(message) {
   clearTimeout(toastTimer);
@@ -32,7 +34,6 @@ function openDialog(id, instant = false) {
   if (!dialog.open) dialog.showModal();
   dialog.style.transitionDuration = instant ? '0ms' : '';
   requestAnimationFrame(() => { if (dialog.open) dialog.setAttribute('data-visible', ''); });
-  if (id === 'index-dialog') document.querySelector('#index-button').setAttribute('aria-expanded', 'true');
 }
 
 async function closeDialog(id, instant = false) {
@@ -44,10 +45,9 @@ async function closeDialog(id, instant = false) {
   dialog.removeAttribute('data-visible');
   if (!instant) await Promise.allSettled(dialog.getAnimations().map((animation) => animation.finished));
   if (dialogVersions.get(dialog) === version) dialog.close();
-  if (id === 'index-dialog') document.querySelector('#index-button').setAttribute('aria-expanded', 'false');
 }
 
-for (const dialog of document.querySelectorAll('dialog')) {
+for (const dialog of document.querySelectorAll('dialog:not(#index-dialog)')) {
   dialog.addEventListener('cancel', (event) => { event.preventDefault(); closeDialog(dialog.id, true); });
   dialog.addEventListener('click', (event) => {
     const rect = dialog.getBoundingClientRect();
@@ -106,19 +106,22 @@ async function renderRoute({ initial = false, preserveScroll = false, instant = 
   }
 }
 
-document.querySelector('#index-button').addEventListener('click', (event) => openDialog('index-dialog', event.detail === 0));
 document.querySelector('#add-button').addEventListener('click', () => showMaterialForm(currentTopic?.key || ''));
 
 document.addEventListener('click', async (event) => {
   if (event.target.closest('.skip-link')) { event.preventDefault(); main.focus({ preventScroll: true }); main.scrollIntoView({ behavior: 'instant' }); return; }
   const close = event.target.closest('[data-close]');
-  if (close) { closeDialog(close.dataset.close, event.detail === 0); return; }
+  if (close) {
+    if (close.dataset.close === 'index-dialog') navigation.close(event.detail === 0);
+    else closeDialog(close.dataset.close, event.detail === 0);
+    return;
+  }
   const practice = event.target.closest('[data-scroll-practice]');
   if (practice) { event.preventDefault(); document.querySelector('#practice')?.scrollIntoView({ behavior: reduceMotion.matches || event.detail === 0 ? 'instant' : 'smooth', block: 'start' }); return; }
   const link = event.target.closest('a[href^="#/"]');
   if (link && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0) {
     event.preventDefault();
-    if (document.querySelector('#index-dialog').open) await closeDialog('index-dialog', event.detail === 0);
+    if (navigation.isOpen && navigation.isModal) await navigation.close(event.detail === 0);
     const hash = link.getAttribute('href');
     if (location.hash === hash) renderRoute({ instant: event.detail === 0 });
     else {

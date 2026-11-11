@@ -12,7 +12,9 @@ A dependency-free mathematics study library with a collapsible competition → s
 
 ## Features
 
-- Animated slide-out index with collapsible branches and direct links at every level.
+- Animated slide-out index: a modal overlay on mobile and a non-modal push sidebar from 1024px upward.
+- Reserved desktop margins keep content width and line wrapping constant when the sidebar is toggled.
+- All 102 techniques include a method, an illustrative example, and a specific pitfall.
 - Topic search, saved topics, review status, and recent reading.
 - Chinese hints and English solution/proof dialogs.
 - Browser-local notes, links, and file attachments with JSON backup import/export.
@@ -36,6 +38,7 @@ node scripts/check-content.mjs
 
 - `site/dist/content.js`: BMO terminology, formulas, questions, and worked solutions.
 - `site/dist/notes-zh.js`: corresponding Chinese BMO explanations and hints.
+- `site/dist/technique-details.js`: expanded Chinese methods, examples, and limitations for BMO and BMT.
 - `site/dist/additional-content.js`: BMT content and the three category-only collections.
 - `site/dist/research.js`: refined BMO combinatorics keywords and official evidence.
 - `research/bmo-combinatorics.md`: research scope, conclusions, and source references.

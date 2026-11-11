@@ -1,8 +1,9 @@
 import { collections as bmoCollections, sources } from './content.js';
 import { additionalCollections } from './additional-content.js';
 import { applyBmoNotes } from './notes-zh.js';
+import { applyTechniqueDetails } from './technique-details.js';
 
-export const collections = [applyBmoNotes(bmoCollections[0]), ...additionalCollections];
+export const collections = applyTechniqueDetails([applyBmoNotes(bmoCollections[0]), ...additionalCollections]);
 export const allTopics = collections.flatMap((collection) => collection.subjects.flatMap((subject) => subject.topics.map((topic) => ({
   ...topic, collection, subject, key: `${collection.id}/${subject.id}/${topic.id}`,
 }))));

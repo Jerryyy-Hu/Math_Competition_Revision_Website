@@ -20,7 +20,8 @@ for (const collection of collections) {
   }
 }
 for (const topic of allTopics) {
-  assert(topicPage(topic, preferences, []).includes(escapeHtml(topic.title)));
+  const renderedTopic = topicPage(topic, preferences, []);
+  assert(renderedTopic.includes(escapeHtml(topic.title)));
   if (topic.collection.scaffold) {
     assert.equal(topic.bullets.length, 0, `No populated notes are authorised for ${topic.collection.name}.`);
     assert.equal(topic.exercises.length, 0, `No populated exercises are authorised for ${topic.collection.name}.`);
@@ -31,6 +32,10 @@ for (const topic of allTopics) {
   for (const item of topic.bullets) {
     assert(!hasChinese(item.name), `Terminology should be English: ${topic.key}`);
     assert(hasChinese(item.text), `Explanation should include Chinese: ${topic.key}`);
+    for (const field of ['method', 'example', 'pitfall']) {
+      assert(typeof item[field] === 'string' && item[field].length >= 15 && hasChinese(item[field]), `Missing detailed ${field}: ${topic.key} / ${item.name}`);
+      assert(renderedTopic.includes(escapeHtml(item[field])), `Detailed ${field} must be rendered: ${topic.key} / ${item.name}`);
+    }
   }
   for (const problem of topic.exercises) {
     assert(!hasChinese(problem.question), `Question should be English: ${topic.key}`);
@@ -52,4 +57,4 @@ const html = readFileSync(new URL('../site/dist/index.html', import.meta.url), '
 assert(html.includes('viewport-fit=cover'));
 assert(html.includes('type="module"'));
 assert(!html.includes('https://cdn'), 'The site must not depend on an external CDN.');
-console.log(JSON.stringify({ collections: collections.length, populatedTopics: totals.topics, exercises: totals.exercises, categoryOnlyTopics: allTopics.length - totals.topics, checks: 'passed' }, null, 2));
+console.log(JSON.stringify({ collections: collections.length, populatedTopics: totals.topics, expandedTechniques: allTopics.reduce((sum, topic) => sum + topic.bullets.length, 0), exercises: totals.exercises, categoryOnlyTopics: allTopics.length - totals.topics, checks: 'passed' }, null, 2));
