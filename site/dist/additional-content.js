@@ -14,7 +14,7 @@ export const additionalCollections = [
           bullet('Roots of unity', '利用单位根的周期与几何级数，整理循环出现的幂。', '1 + ω + ⋯ + ωⁿ⁻¹ = 0 (ωⁿ = 1, ω ≠ 1)'),
         ], [exercise('Power sums without solving', 'The roots of x² − 3x + 1 = 0 are α and β. Find α⁴ + β⁴.', '先求 α² + β²，再对它平方并扣除重复项。', ['Vieta’s formulas give α + β = 3 and αβ = 1.', 'Thus α² + β² = 3² − 2 = 7, and α⁴ + β⁴ = 7² − 2(αβ)² = 47.'], false)]),
         topic('sequences-sums', 'Sequences & sums', '通过差分、配对与望远镜求和找到简洁形式。', [
-          bullet('Arithmetic & geometric sums', '先辨认公差或公比；使用几何级数公式时单独检查公比为 1 的情况。', 'Σᵏ⁻¹ᵢ₌₀ rⁱ = (1 − rᵏ)/(1 − r), r ≠ 1'),
+          bullet('Arithmetic & geometric sums', '先辨认公差或公比；使用几何级数公式时单独检查公比为 1 的情况。', '1 + r + ⋯ + rᵏ⁻¹ = (1 − rᵏ)/(1 − r), r ≠ 1'),
           bullet('Finite differences', '相邻差比原数列简单时，先研究差分，再累加还原。'),
           bullet('Telescoping', '将求和项拆成连续两项之差，留意首尾未消去的项。'),
           bullet('Index pairing', '将第 k 项与倒数第 k 项配对，寻找恒定的和或积。'),
@@ -57,7 +57,7 @@ export const additionalCollections = [
         ], [exercise('Two simultaneous remainders', 'Find the least positive integer n such that n ≡ 2 (mod 5) and n ≡ 3 (mod 7).', '写成 n = 5k + 2，再代入第二个条件。', ['Substitution gives 5k + 2 ≡ 3 (mod 7), so 5k ≡ 1 (mod 7).', 'Since 5·3 ≡ 1 (mod 7), k ≡ 3 (mod 7). Thus n ≡ 17 (mod 35), and the least positive solution is 17.'], false)]),
         topic('factorisation-valuations', 'Factorisation & valuations', '把乘法条件变成质因数指数的条件。', [
           bullet('Prime factorisation', '用质因数分解的唯一性，比较两个乘积各个质因子的指数。'),
-          bullet('Divisor counting', '每个质因数指数都可独立选取。', 'n = ∏pᵢᵃⁱ ⇒ d(n) = ∏(aᵢ + 1)'),
+          bullet('Divisor counting', '每个质因数指数都可独立选取。', 'n = p₁^(a₁) ⋯ pᵣ^(aᵣ) ⇒ d(n) = (a₁ + 1)⋯(aᵣ + 1)'),
           bullet('Legendre’s formula', '阶乘中每个 p 的倍数贡献一次，每个 p² 的倍数再多贡献一次，以此类推。', 'vₚ(n!) = Σⱼ≥₁ ⌊n/pʲ⌋'),
           bullet('Perfect powers', '若为完全 k 次幂，则所有质因数指数都必须被 k 整除。'),
         ], [exercise('Trailing zeros', 'How many trailing zeros does 100! have in base 10?', '分别考虑因子 2 和 5，哪一个更少？', ['Each trailing zero requires a factor 10 = 2·5. Factors of 2 are more numerous than factors of 5.', 'Legendre’s formula gives v₅(100!) = ⌊100/5⌋ + ⌊100/25⌋ = 20 + 4 = 24.', 'Therefore 100! has exactly 24 trailing zeros.'], false)]),
