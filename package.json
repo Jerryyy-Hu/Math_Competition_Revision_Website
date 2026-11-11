@@ -1,0 +1,11 @@
+{
+  "name": "lemma-mathematics-library",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A dependency-free BMO and BMT study library",
+  "scripts": {
+    "check": "node scripts/check-content.mjs",
+    "preview": "node scripts/serve.mjs"
+  }
+}
