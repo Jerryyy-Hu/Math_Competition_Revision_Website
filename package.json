@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A dependency-free BMO and BMT study library",
+  "description": "A BMO and BMT study library with locally vendored KaTeX",
   "scripts": {
-    "check": "node scripts/check-content.mjs",
-    "preview": "node scripts/serve.mjs"
+    "check": "node scripts/check-content.mjs && node scripts/check-math.mjs && node scripts/check-study-state.mjs",
+    "preview": "node scripts/serve.mjs",
+    "check:browser": "node scripts/check-browser.mjs",
+    "check:sources": "node scripts/check-sources.mjs",
+    "vendor:katex": "node scripts/vendor-katex.mjs"
   }
 }

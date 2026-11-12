@@ -1,7 +1,9 @@
-import { collections, allTopics, topicMap, escapeHtml as e, icons } from './library.js';
+import { collections, allTopics, topicMap, resolveTopicKey, escapeHtml as e, icons } from './library.js';
 import * as views from './views.js';
 import { getMaterials, saveMaterial, readPreferences, writePreferences, exportMaterials, importMaterials } from './storage.js';
 import { createNavigation } from './navigation.js';
+import { createReadingOutline } from './reading-outline.js';
+import { problemKey } from './study-state.js';
 
 const main = document.querySelector('main');
 const preferences = readPreferences();
@@ -11,8 +13,24 @@ let materialCache = [];
 let routeVersion = 0;
 let pageAnimation;
 let toastTimer;
+let disposeOutline = () => {};
 const dialogVersions = new WeakMap();
 const navigation = createNavigation();
+
+preferences.saved = [...new Set(preferences.saved.map(resolveTopicKey))];
+preferences.read = [...new Set(preferences.read.map(resolveTopicKey))];
+if (preferences.last) preferences.last = resolveTopicKey(preferences.last);
+if (!preferences.reviewVersion) {
+  preferences.reviewedProblems = preferences.read.flatMap((key) => {
+    const topic = topicMap.get(key);
+    return topic ? topic.exercises.filter((problem) => !problem.source).map((problem) => problemKey(topic, problem)) : [];
+  });
+  preferences.read = preferences.read.filter((key) => {
+    const topic = topicMap.get(key);
+    return topic?.exercises.every((problem) => preferences.reviewedProblems.includes(problemKey(topic, problem)));
+  });
+  preferences.reviewVersion = 1;
+}
 
 function toast(message) {
   clearTimeout(toastTimer);
@@ -56,11 +74,13 @@ for (const dialog of document.querySelectorAll('dialog:not(#index-dialog)')) {
 }
 
 function routeParts() {
-  return location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  const route = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).join('/');
+  return resolveTopicKey(route).split('/').filter(Boolean);
 }
 
 async function renderRoute({ initial = false, preserveScroll = false, instant = false } = {}) {
   const version = ++routeVersion;
+  disposeOutline();
   const parts = routeParts();
   currentTopic = null;
   pageAnimation?.cancel();
@@ -72,6 +92,7 @@ async function renderRoute({ initial = false, preserveScroll = false, instant = 
   try { materialCache = await getMaterials(); }
   catch { materialCache = []; }
   if (version !== routeVersion) return;
+  materialCache = materialCache.map((material) => ({ ...material, topic: resolveTopicKey(material.topic || '') }));
   materialCache.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   let html;
   let title = 'Mathematics library';
@@ -100,6 +121,7 @@ async function renderRoute({ initial = false, preserveScroll = false, instant = 
   document.querySelector('#index-tree').innerHTML = views.indexTree(parts.join('/'));
   pageAnimation?.cancel();
   if (!preserveScroll) window.scrollTo({ top: 0, behavior: 'instant' });
+  disposeOutline = createReadingOutline(main);
   if (!initial) main.focus({ preventScroll: true });
   if (!initial && !instant) {
     pageAnimation = main.animate(reduceMotion.matches ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(5px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: reduceMotion.matches ? 100 : 180, easing: 'cubic-bezier(.23,1,.32,1)' });
@@ -118,6 +140,14 @@ document.addEventListener('click', async (event) => {
   }
   const practice = event.target.closest('[data-scroll-practice]');
   if (practice) { event.preventDefault(); document.querySelector('#practice')?.scrollIntoView({ behavior: reduceMotion.matches || event.detail === 0 ? 'instant' : 'smooth', block: 'start' }); return; }
+  const outline = event.target.closest('[data-outline-link]');
+  if (outline) {
+    event.preventDefault();
+    const heading = document.getElementById(outline.dataset.outlineLink);
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ behavior: reduceMotion.matches || event.detail === 0 ? 'instant' : 'smooth', block: 'start' });
+    return;
+  }
   const link = event.target.closest('a[href^="#/"]');
   if (link && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.button === 0) {
     event.preventDefault();
@@ -142,32 +172,46 @@ document.addEventListener('click', async (event) => {
     toast(exists ? '已取消收藏' : '已加入 Saved');
     return;
   }
-  const read = event.target.closest('[data-read]');
-  if (read) {
-    const key = read.dataset.read;
-    const exists = preferences.read.includes(key);
-    preferences.read = exists ? preferences.read.filter((item) => item !== key) : [...preferences.read, key];
+  const mark = event.target.closest('[data-mark-technique]');
+  if (mark) {
+    const key = mark.dataset.markTechnique;
+    const exists = preferences.markedTechniques.includes(key);
+    preferences.markedTechniques = exists ? preferences.markedTechniques.filter((item) => item !== key) : [...preferences.markedTechniques, key];
     persistPreferences();
-    read.innerHTML = `${icons.check}${exists ? 'Mark as reviewed' : 'Reviewed'}`;
-    read.classList.toggle('button-soft', !exists);
-    read.setAttribute('aria-pressed', String(!exists));
-    read.parentElement.querySelector('p').textContent = exists ? '理解方法后，再尝试独立写出证明。' : '已标记复习。可以随时取消。';
+    mark.closest('[data-technique-key]').classList.toggle('is-marked', !exists);
+    mark.classList.toggle('is-marked', !exists);
+    mark.setAttribute('aria-pressed', String(!exists));
+    mark.setAttribute('aria-label', mark.getAttribute('aria-label').replace(/^(Unmark|Mark)/, exists ? 'Mark' : 'Unmark'));
+    mark.querySelector('span').textContent = exists ? 'Mark' : 'Marked';
+    main.querySelectorAll('[data-mark-key]').forEach((link) => {
+      if (link.dataset.markKey !== key) return;
+      link.classList.toggle('is-marked', !exists);
+      link.querySelector('.outline-mark').hidden = exists;
+    });
     return;
   }
-  const hint = event.target.closest('[data-hint]');
-  if (hint) {
-    const content = document.getElementById(hint.getAttribute('aria-controls'));
-    const expanded = hint.getAttribute('aria-expanded') === 'true';
-    hint.setAttribute('aria-expanded', String(!expanded));
+  const review = event.target.closest('[data-review-problem]');
+  if (review && currentTopic) {
+    const key = review.dataset.reviewProblem;
+    const exists = preferences.reviewedProblems.includes(key);
+    preferences.reviewedProblems = exists ? preferences.reviewedProblems.filter((item) => item !== key) : [...preferences.reviewedProblems, key];
+    const allReviewed = currentTopic.exercises.every((problem) => preferences.reviewedProblems.includes(problemKey(currentTopic, problem)));
+    preferences.read = preferences.read.filter((item) => item !== currentTopic.key);
+    if (allReviewed) preferences.read.push(currentTopic.key);
+    persistPreferences();
+    review.classList.toggle('is-reviewed', !exists);
+    review.closest('.exercise').classList.toggle('is-reviewed', !exists);
+    review.setAttribute('aria-pressed', String(!exists));
+    review.querySelector('span').textContent = exists ? 'Mark as reviewed' : 'Marked as reviewed';
+    return;
+  }
+  const disclosure = event.target.closest('[data-disclosure]');
+  if (disclosure) {
+    const content = document.getElementById(disclosure.getAttribute('aria-controls'));
+    const expanded = disclosure.getAttribute('aria-expanded') === 'true';
+    disclosure.setAttribute('aria-expanded', String(!expanded));
     content.hidden = expanded;
-    if (!expanded && event.detail !== 0) content.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150 });
-    return;
-  }
-  const solution = event.target.closest('[data-solution]');
-  if (solution && currentTopic) {
-    const problem = currentTopic.exercises[Number(solution.dataset.solution)];
-    document.querySelector('#solution-content').innerHTML = `<div class="modal-top"><span class="eyebrow">${problem.proof ? 'A COMPLETE PROOF' : 'WORKED SOLUTION'}</span><button class="icon-button" data-close="solution-dialog" aria-label="Close solution">×</button></div><h2 id="solution-title">${e(problem.title)}</h2><p class="solution-question" lang="en">${e(problem.question)}</p><ol class="solution-steps" lang="en">${problem.solution.map((step) => `<li>${e(step)}</li>`).join('')}</ol>${problem.proof ? '<div class="solution-end" aria-label="End of proof">□</div>' : ''}`;
-    openDialog('solution-dialog', event.detail === 0);
+    if (!expanded && event.detail !== 0 && !reduceMotion.matches) content.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150 });
     return;
   }
   const add = event.target.closest('[data-add-topic]');
@@ -271,7 +315,11 @@ document.querySelector('#import-input').addEventListener('change', async (event)
   if (!file) return;
   try {
     if (file.size > 80 * 1024 * 1024) throw new Error('备份文件不能超过 80 MB。');
-    const count = await importMaterials(await file.text(), new Set(topicMap.keys()), new Set(collections.map((collection) => collection.id)));
+    const backup = JSON.parse(await file.text());
+    if (Array.isArray(backup.materials)) backup.materials.forEach((material) => {
+      if (material && typeof material.topic === 'string') material.topic = resolveTopicKey(material.topic);
+    });
+    const count = await importMaterials(JSON.stringify(backup), new Set(topicMap.keys()), new Set(collections.map((collection) => collection.id)));
     toast(`已导入 ${count} 份资料。`);
     await renderRoute({ preserveScroll: true, instant: true });
   } catch (error) { toast(error.message || '无法导入该备份文件。'); }

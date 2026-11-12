@@ -31,9 +31,10 @@ export const saveMaterial = (material) => transact('readwrite', (store) => store
 export function readPreferences() {
   try {
     const value = JSON.parse(localStorage.getItem('lemma-preferences-v1') || '{}');
-    return { saved: Array.isArray(value.saved) ? value.saved : [], read: Array.isArray(value.read) ? value.read : [], last: typeof value.last === 'string' ? value.last : null };
+    const strings = (items) => Array.isArray(items) ? [...new Set(items.filter((item) => typeof item === 'string'))] : [];
+    return { saved: strings(value.saved), read: strings(value.read), markedTechniques: strings(value.markedTechniques), reviewedProblems: strings(value.reviewedProblems), reviewVersion: value.reviewVersion === 1 ? 1 : 0, last: typeof value.last === 'string' ? value.last : null };
   } catch {
-    return { saved: [], read: [], last: null };
+    return { saved: [], read: [], markedTechniques: [], reviewedProblems: [], reviewVersion: 0, last: null };
   }
 }
 

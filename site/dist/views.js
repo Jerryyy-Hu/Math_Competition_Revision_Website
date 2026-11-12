@@ -1,5 +1,7 @@
 import { collections, allTopics, activeTopics, topicMap, totals, collectionSources, escapeHtml as e, routeFor, icons, artwork } from './library.js';
 import { methodGroups, evidence, qualifications } from './research.js';
+import { richText, displayMath } from './math.js';
+import { techniqueId, techniqueKey, problemKey } from './study-state.js';
 
 const arrow = '<span class="card-arrow" aria-hidden="true">↗</span>';
 const label = (text) => `<span class="eyebrow">${text}</span>`;
@@ -25,7 +27,7 @@ export function homePage(preferences) {
       const topics = allTopics.filter((topic) => topic.collection.id === collection.id);
       return `<a class="collection-card ${collection.color} ${collection.scaffold ? 'scaffold' : ''}" href="#/${collection.id}"><div class="card-top"><span class="card-number">0${index + 1} / ${collection.scaffold ? 'FRAMEWORK' : 'COLLECTION'}</span>${arrow}</div><div class="card-art">${artwork(collection.symbol)}</div><div class="card-body"><h2>${e(collection.name)}</h2><p class="full-name">${e(collection.fullName)}</p><div class="card-footer"><span>${collection.subjects.length} subjects</span><span class="dot"></span><span>${topics.length} ${collection.scaffold ? 'categories' : 'topics'}</span>${!collection.scaffold ? '<span aria-hidden="true">→</span>' : ''}</div></div></a>`;
     }).join('')}</div>
-    <div class="home-bottom"><div class="study-note">${label('A NOTE ON THE NOTES')}<h3>Understand. Then prove.</h3><p lang="zh-CN">讲解与 hints 用中文，术语、题目与解析用英文。练习为原创或经典训练题；官方真题与评分资料另附来源。</p></div><a class="continue-link" href="${routeFor(lastTopic)}"><div class="continue-icon" aria-hidden="true">${preferences.last ? '↗' : '∑'}</div><div class="continue-text">${label(preferences.last ? 'PICK UP WHERE YOU LEFT OFF' : 'A PLACE TO BEGIN')}<h3>${e(lastTopic.title)}</h3><p>${e(lastTopic.collection.name)} &nbsp; / &nbsp; ${e(lastTopic.subject.name)}</p></div><span aria-hidden="true">↗</span></a></div></div><div id="search-results" class="search-results" hidden></div>`;
+    <div class="home-bottom"><div class="study-note">${label('A NOTE ON THE NOTES')}<h3>Understand. Then prove.</h3><p lang="zh-CN">中文讲解与 hints，中英双语技巧名，英文题目与解析。真题附官方原卷链接；题意重述与原创训练均明确区分。</p></div><a class="continue-link" href="${routeFor(lastTopic)}"><div class="continue-icon" aria-hidden="true">${preferences.last ? '↗' : '∑'}</div><div class="continue-text">${label(preferences.last ? 'PICK UP WHERE YOU LEFT OFF' : 'A PLACE TO BEGIN')}<h3>${e(lastTopic.title)}</h3><p>${e(lastTopic.collection.name)} &nbsp; / &nbsp; ${e(lastTopic.subject.name)}</p></div><span aria-hidden="true">↗</span></a></div></div><div id="search-results" class="search-results" hidden></div>`;
 }
 
 export function collectionPage(collection, preferences) {
@@ -41,19 +43,50 @@ export function subjectPage(collection, subject, preferences) {
   return `${breadcrumbs([[collection.name, `#/${collection.id}`], [subject.name]])}<section class="page-heading"><div>${label(`${collection.name} / ${collection.scaffold ? 'FRAMEWORK' : 'SUBJECT'}`)}<h1>${e(subject.name)}</h1>${subject.description ? `<p>${e(subject.description)}</p>` : ''}</div><div class="heading-badge"><span>${topics.length}</span><small>${collection.scaffold ? 'categories' : 'topics'}</small></div></section><div class="topic-grid">${topics.map((topic, index) => topicCard(topic, index, preferences)).join('')}</div>${collection.id === 'bmo' && subject.id === 'combinatorics' ? `<div class="research-callout"><div><h3>A broader combinatorics toolkit</h3><p lang="zh-CN">查阅凝练关键词、适用条件与历年官方题目证据。</p></div><a class="button" href="#/bmo/review">Method map ↗</a></div>` : ''}`;
 }
 
+function techniqueBlock(topic, item, preferences) {
+  const key = techniqueKey(topic, item);
+  const marked = preferences.markedTechniques?.includes(key) || false;
+  const title = item.nameZh || item.name;
+  return `<li class="technique ${marked ? 'is-marked' : ''}" data-technique-key="${e(key)}">
+    <div class="technique-heading-row"><h2 id="${techniqueId(item)}" tabindex="-1" data-technique-heading><span lang="zh-CN">${e(title)}</span><span class="technique-term" lang="en">${e(item.name)}</span></h2>
+    <button class="technique-mark ${marked ? 'is-marked' : ''}" data-mark-technique="${e(key)}" aria-pressed="${marked}" aria-label="${marked ? 'Unmark' : 'Mark'} technique: ${e(title)}">${icons.bookmark}<span>${marked ? 'Marked' : 'Mark'}</span></button></div>
+    <p lang="zh-CN">${richText(item.text)} ${richText(item.method)}</p>${item.formula ? `<div class="formula" aria-label="Formula">${displayMath(item.formula)}</div>` : ''}
+    <p class="technique-example" lang="zh-CN"><span class="technique-label" lang="en">Example</span>${richText(item.example)}</p><p class="technique-pitfall" lang="zh-CN"><span lang="en">Watch out.</span> ${richText(item.pitfall)}</p></li>`;
+}
+
+function exerciseBlock(topic, problem, index, preferences) {
+  const key = problemKey(topic, problem);
+  const reviewed = preferences.reviewedProblems?.includes(key) || false;
+  const source = problem.source;
+  const sourceName = source ? [source.competition, source.year, source.round, source.question].filter(Boolean).join(' · ') : 'Original / classical';
+  return `<article class="exercise ${reviewed ? 'is-reviewed' : ''}" data-problem-key="${e(key)}">
+    <div class="exercise-meta"><div class="exercise-origin"><span>PROBLEM ${String(index + 1).padStart(2, '0')}</span>${source ? `<a href="${e(source.url)}" target="_blank" rel="noopener noreferrer">${e(sourceName)} ↗</a>` : `<span>${sourceName}</span>`}</div><span>${source?.restated ? 'RESTATED · ' : ''}${problem.proof ? 'PROOF' : 'SHORT ANSWER'}</span></div>
+    <h3>${e(problem.title)}</h3><div class="question" lang="en">${richText(problem.question)}</div>
+    <div class="exercise-buttons"><button id="hint-button-${index}" class="button hint-button" data-disclosure="hint" aria-expanded="false" aria-controls="hint-${index}">${icons.hint}Hint</button><button id="solution-button-${index}" class="button solution-button" data-disclosure="solution" aria-expanded="false" aria-controls="solution-${index}">Solution <span aria-hidden="true">↓</span></button>
+    <button class="button review-button ${reviewed ? 'is-reviewed' : ''}" data-review-problem="${e(key)}" aria-pressed="${reviewed}">${icons.check}<span>${reviewed ? 'Marked as reviewed' : 'Mark as reviewed'}</span></button></div>
+    <div class="hint-content" id="hint-${index}" role="region" aria-labelledby="hint-button-${index}" lang="zh-CN" hidden>${richText(problem.hint)}</div>
+    <div class="solution-content" id="solution-${index}" role="region" aria-labelledby="solution-button-${index}" lang="en" hidden><ol class="solution-steps">${problem.solution.map((step) => `<li>${richText(step)}</li>`).join('')}</ol>${source?.solutionUrl ? `<a class="official-solution" href="${e(source.solutionUrl)}" target="_blank" rel="noopener noreferrer">Official solution ↗</a>` : ''}${problem.proof ? '<div class="solution-end" aria-label="End of proof">□</div>' : ''}</div></article>`;
+}
+
+function topicOutline(topic, preferences) {
+  return `<aside class="topic-sidebar">${label(topic.scaffold ? 'CATEGORY ONLY' : 'ON THIS PAGE')}<h3>${e(topic.title)}</h3>${!topic.scaffold ? `<nav aria-label="Technique outline"><ul class="outline-links">${topic.bullets.map((item) => {
+    const key = techniqueKey(topic, item);
+    const marked = preferences.markedTechniques?.includes(key) || false;
+    return `<li><a href="#${techniqueId(item)}" data-outline-link="${techniqueId(item)}" data-mark-key="${e(key)}" class="${marked ? 'is-marked' : ''}"><span class="outline-label"><span lang="zh-CN">${e(item.nameZh || item.name)}</span><span class="outline-term" lang="en">${e(item.name)}</span></span><span class="outline-mark" aria-label="Marked" ${marked ? '' : 'hidden'}>${icons.bookmark}</span></a></li>`;
+  }).join('')}</ul><a class="outline-practice" href="#practice" data-scroll-practice>Practice ↓</a></nav>` : ''}<div class="sidebar-divider"></div><p class="sidebar-note" lang="zh-CN">${topic.scaffold ? '这个板块的内容将在后续整理。' : '点击技巧旁的 Mark，即可标记整块内容；标记会保留在当前浏览器。'}</p>${!topic.collection.scaffold ? `<a class="text-button" href="#/${topic.collection.id}/resources">Official resources ↗</a>` : ''}</aside>`;
+}
+
 export function topicPage(topic, preferences, materials) {
   const siblings = allTopics.filter((item) => item.collection.id === topic.collection.id && item.subject.id === topic.subject.id);
   const next = siblings[siblings.indexOf(topic) + 1];
   const saved = preferences.saved.includes(topic.key);
-  const read = preferences.read.includes(topic.key);
   return `${breadcrumbs([[topic.collection.name, `#/${topic.collection.id}`], [topic.subject.name, `#/${topic.collection.id}/${topic.subject.id}`], [topic.title]])}
-    <div class="topic-layout"><article><header class="topic-heading">${label(`${topic.collection.name} / ${topic.subject.name}`)}<h1>${e(topic.title)}</h1>${topic.description ? `<p class="description" lang="zh-CN">${e(topic.description)}</p>` : ''}<div class="topic-actions"><button class="button ${saved ? 'is-saved' : ''}" data-save="${topic.key}" aria-pressed="${saved}">${icons.bookmark}${saved ? 'Saved' : 'Save topic'}</button><button class="button" data-add-topic="${topic.key}">${icons.file}Add material</button>${!topic.scaffold ? '<a href="#practice" class="button" data-scroll-practice>Practice ↓</a>' : ''}</div></header>
-    ${topic.scaffold ? `<div class="empty-state"><span class="empty-symbol" aria-hidden="true">∅</span><h2>A space for later.</h2><p lang="zh-CN">此处暂时仅保留分类。讲解、题目和解析会在后续补充。</p><a class="button" href="#/${topic.collection.id}">Back to ${e(topic.collection.name)} ↗</a></div>` : `<ul class="technique-list">${topic.bullets.map((item) => `<li><h2>${e(item.name)}</h2><p lang="zh-CN">${e(item.text)} ${e(item.method)}</p>${item.formula ? `<div class="formula" aria-label="Formula">${e(item.formula)}</div>` : ''}<p class="technique-example" lang="zh-CN"><span class="technique-label" lang="en">Example</span>${e(item.example)}</p><p class="technique-pitfall" lang="zh-CN"><span lang="en">Watch out.</span> ${e(item.pitfall)}</p></li>`).join('')}</ul>
-    <section id="practice" class="practice-section" aria-labelledby="practice-title"><div class="practice-heading"><h2 id="practice-title">Put it into practice.</h2><span>Original / classical exercises</span></div>${topic.exercises.map((problem, index) => `<article class="exercise"><div class="exercise-meta"><span>PROBLEM ${String(index + 1).padStart(2, '0')}</span><span>${problem.proof ? 'PROOF' : 'SHORT ANSWER'}</span></div><h3>${e(problem.title)}</h3><p class="question" lang="en">${e(problem.question)}</p><div class="exercise-buttons"><button class="button" data-hint="${index}" aria-expanded="false" aria-controls="hint-${index}">${icons.hint}Hint</button><button class="button" data-solution="${index}">${problem.proof ? 'View proof' : 'View solution'} <span aria-hidden="true">↗</span></button></div><div class="hint-content" id="hint-${index}" lang="zh-CN" hidden><strong>ONE SMALL NUDGE</strong>${e(problem.hint)}</div></article>`).join('')}</section>
-    <div class="read-control"><p lang="zh-CN">${read ? '已标记复习。可以随时取消。' : '理解方法后，再尝试独立写出证明。'}</p><button class="button ${read ? 'button-soft' : ''}" data-read="${topic.key}" aria-pressed="${read}">${icons.check}${read ? 'Reviewed' : 'Mark as reviewed'}</button></div>`}
+    <div class="topic-layout"><article class="topic-body"><header class="topic-heading">${label(`${topic.collection.name} / ${topic.subject.name}`)}<h1>${e(topic.title)}</h1>${topic.description ? `<p class="description" lang="zh-CN">${e(topic.description)}</p>` : ''}<div class="topic-actions"><button class="button ${saved ? 'is-saved' : ''}" data-save="${topic.key}" aria-pressed="${saved}">${icons.bookmark}${saved ? 'Saved' : 'Save topic'}</button><button class="button" data-add-topic="${topic.key}">${icons.file}Add material</button>${!topic.scaffold ? '<a href="#practice" class="button" data-scroll-practice>Practice ↓</a>' : ''}</div></header>
+    ${topic.sources?.length ? `<div class="rule-sources">${topic.sources.map((source) => `<a href="${e(source.url)}" target="_blank" rel="noopener noreferrer">${e(source.title)} ↗</a>`).join('')}</div>` : ''}
+    ${topic.scaffold ? `<div class="empty-state"><span class="empty-symbol" aria-hidden="true">∅</span><h2>A space for later.</h2><p lang="zh-CN">此处暂时仅保留分类。讲解、题目和解析会在后续补充。</p><a class="button" href="#/${topic.collection.id}">Back to ${e(topic.collection.name)} ↗</a></div>` : `<ul class="technique-list topic-techniques">${topic.bullets.map((item) => techniqueBlock(topic, item, preferences)).join('')}</ul>
+    <section id="practice" class="practice-section" aria-labelledby="practice-title"><div class="practice-heading"><h2 id="practice-title">Practice</h2></div>${topic.exercises.map((problem, index) => exerciseBlock(topic, problem, index, preferences)).join('')}</section>`}
     <section class="topic-materials"><div class="section-line">${label('YOUR MATERIALS')}<button class="text-button" data-add-topic="${topic.key}">＋ Add material</button></div>${materials.length ? materialRows(materials) : '<p class="sidebar-note" lang="zh-CN">还没有归档到此处的个人资料。</p>'}</section>
-    ${next ? `<a class="next-topic" href="${routeFor(next)}"><div>${label('NEXT TOPIC')}<h3>${e(next.title)}</h3></div><span aria-hidden="true">→</span></a>` : ''}</article>
-    <aside class="topic-sidebar">${label('IN THIS SUBJECT')}<h3>${e(topic.subject.name)}</h3><ul class="related-links">${siblings.map((item) => `<li><a href="${routeFor(item)}" ${item.key === topic.key ? 'class="current" aria-current="page"' : ''}>${e(item.title)}</a></li>`).join('')}</ul><div class="sidebar-divider"></div>${label(topic.scaffold ? 'CATEGORY ONLY' : 'A SMALL REMINDER')}<p class="sidebar-note" lang="zh-CN">${topic.scaffold ? '这个板块的内容将在后续整理。' : '先独立尝试，再看 hint。读懂解析后，合上它重新写一遍。'}</p>${!topic.collection.scaffold ? `<a class="text-button" href="#/${topic.collection.id}/resources">Official resources ↗</a>` : ''}</aside></div>`;
+    ${next ? `<a class="next-topic" href="${routeFor(next)}"><div>${label('NEXT TOPIC')}<h3>${e(next.title)}</h3></div><span aria-hidden="true">→</span></a>` : ''}</article>${topicOutline(topic, preferences)}</div>`;
 }
 
 export function savedPage(preferences) {
@@ -89,7 +122,7 @@ export function indexTree(route) {
 export function searchResults(query, preferences) {
   const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const results = allTopics.filter((topic) => {
-    const haystack = [topic.title, topic.description, topic.collection.name, topic.subject.name, ...topic.bullets.flatMap((item) => [item.name, item.text, item.method, item.example, item.pitfall])].join(' ').toLowerCase();
+    const haystack = [topic.title, topic.description, topic.collection.name, topic.subject.name, ...topic.bullets.flatMap((item) => [item.nameZh, item.name, item.text, item.method, item.example, item.pitfall])].join(' ').toLowerCase();
     return words.every((word) => haystack.includes(word));
   });
   if (!results.length) return '<div class="empty-state"><h2>No matching ideas yet.</h2><p lang="zh-CN">试试其他术语、知识点或中文关键词。</p></div>';

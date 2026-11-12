@@ -2,8 +2,20 @@ import { collections as bmoCollections, sources } from './content.js';
 import { additionalCollections } from './additional-content.js';
 import { applyBmoNotes } from './notes-zh.js';
 import { applyTechniqueDetails } from './technique-details.js';
+import { applyBmoPresentation } from './bmo-presentation.js';
+import { bmtCollection, bmtRouteAliases } from './bmt-content.js';
+import { bmoPastPapers } from './bmo-past-papers.js';
 
-export const collections = applyTechniqueDetails([applyBmoNotes(bmoCollections[0]), ...additionalCollections]);
+const [bmoCollection] = applyTechniqueDetails([applyBmoNotes(bmoCollections[0])]);
+applyBmoPresentation(bmoCollection);
+bmoCollection.note = 'The topics are a curated preparation map, not an official exhaustive syllabus. Official practice is independently restated and linked to the original paper; original and classical exercises are labelled separately.';
+for (const subject of bmoCollection.subjects) {
+  for (const topic of subject.topics) {
+    const key = `bmo/${subject.id}/${topic.id}`;
+    topic.exercises = [...(bmoPastPapers[key] || []), ...topic.exercises];
+  }
+}
+export const collections = [bmoCollection, bmtCollection, ...additionalCollections.filter((collection) => collection.scaffold)];
 export const allTopics = collections.flatMap((collection) => collection.subjects.flatMap((subject) => subject.topics.map((topic) => ({
   ...topic, collection, subject, key: `${collection.id}/${subject.id}/${topic.id}`,
 }))));
@@ -13,7 +25,8 @@ export const totals = {
   topics: activeTopics.length,
   exercises: activeTopics.reduce((sum, topic) => sum + topic.exercises.length, 0),
 };
-export const collectionSources = (collection) => collection.scaffold ? [] : sources[collection.id] || [];
+export const collectionSources = (collection) => collection.scaffold ? [] : collection.sources || sources[collection.id] || [];
+export const resolveTopicKey = (key) => bmtRouteAliases[key] || key;
 export const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 export const routeFor = (topic) => `#/${topic.key}`;
 
