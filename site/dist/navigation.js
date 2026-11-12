@@ -29,13 +29,13 @@ export function createNavigation() {
     setInstant(instant);
     if (!dialog.open) showInCurrentMode();
     updateTrigger();
-    // Establish the off-screen starting style before the first visible frame.
+    // Paint the off-screen state before starting a slide on a newly opened dialog.
     dialog.getBoundingClientRect();
-    requestAnimationFrame(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       if (current !== version || !expanded) return;
       root.setAttribute('data-navigation-open', '');
       dialog.setAttribute('data-visible', '');
-    });
+    }));
   }
 
   async function close(instant = false) {

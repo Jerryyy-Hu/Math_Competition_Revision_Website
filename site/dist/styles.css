@@ -45,6 +45,10 @@ svg { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColo
 .wordmark span { color: var(--accent); }
 .icon-button { display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--line); border-radius: 50%; width: 42px; height: 42px; font-size: 27px; line-height: 1; flex-shrink: 0; transition: transform 120ms var(--ease-out), background 150ms; }
 .index-button { border: none; width: 36px; }
+.index-glyph { position: relative; display: block; width: 20px; height: 20px; flex-shrink: 0; }
+.index-glyph svg { position: absolute; inset: 0; width: 20px; height: 20px; transform-origin: center; }
+.index-menu { opacity: 1; transform: rotate(0deg); }
+.index-chevron { opacity: 0; transform: rotate(-90deg); }
 .header-links { display: flex; align-items: center; gap: 32px; font-size: 13px; }
 .header-links a { position: relative; color: var(--muted); padding: 35px 0; }
 .header-links a.active { color: var(--ink); }
@@ -205,17 +209,14 @@ main { width: var(--content-width); margin: 0 auto; padding: 56px 0 90px; min-he
 .import-label { cursor: pointer; }
 dialog { color: var(--ink); background: var(--paper); border: 1px solid var(--line); padding: 0; }
 dialog::backdrop { background: #25292353; }
-.drawer { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(84vw, 320px); max-width: calc(100vw - 48px); height: 100dvh; max-height: 100dvh; margin: 0; border: none; border-right: 1px solid var(--line); padding: calc(28px + env(safe-area-inset-top)) 24px calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; transform: translateX(-100%); opacity: 0; transition: transform 280ms var(--ease-drawer), opacity 180ms var(--ease-out); }
-.drawer[data-visible] { transform: translateX(0); opacity: 1; }
+.drawer { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(84vw, 320px); max-width: calc(100vw - 48px); height: 100dvh; max-height: 100dvh; margin: 0; border: none; border-right: 1px solid var(--line); padding: calc(28px + env(safe-area-inset-top)) 24px calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; transform: translateX(-100%); transition: transform 280ms var(--ease-drawer); }
+.drawer[data-visible] { transform: translateX(0); }
 .drawer::backdrop { opacity: 0; transition: opacity 220ms var(--ease-out); }
 .drawer[data-visible]::backdrop { opacity: 1; }
-.navigation-instant .drawer, .navigation-instant .page-shell, .navigation-instant .drawer::backdrop { transition: none; }
-.drawer-header { display: flex; justify-content: space-between; align-items: center; }
-.drawer-header .wordmark { font-size: 33px; }
+.navigation-instant .drawer, .navigation-instant .page-shell, .navigation-instant .drawer::backdrop, .navigation-instant .index-glyph svg { transition: none; }
+.drawer-header { display: flex; justify-content: space-between; align-items: center; min-height: 42px; margin-bottom: 28px; }
+.drawer-header h2 { font: 33px/.9 var(--serif); font-weight: 400; letter-spacing: -1px; margin: 0; }
 .drawer-header .icon-button { border: none; }
-.drawer-heading { margin: 44px 0 25px; }
-.drawer-heading .eyebrow { color: var(--muted); }
-.drawer-heading h2 { font: 29px var(--serif); font-weight: 400; letter-spacing: -.5px; margin: 10px 0; }
 .drawer-home { display: flex; justify-content: space-between; padding: 13px 0; margin-bottom: 13px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 12px; }
 .index-tree > details { border-bottom: 1px solid var(--line); padding: 7px 0; }
 .index-tree summary { list-style: none; display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px 0; }
@@ -362,6 +363,9 @@ input[type=file] { font-size: 11px; padding: 11px 8px; }
   :root { --content-width: min(1160px, calc(100vw - var(--sidebar-width) - 2 * var(--page-gutter))); }
   [data-navigation-open] .page-shell { transform: translateX(calc(var(--sidebar-width) / 2)); }
   .drawer { width: var(--sidebar-width); max-width: none; }
+  .index-glyph svg { transition: transform 240ms var(--ease-out), opacity 160ms linear; }
+  .index-button[aria-expanded="true"] .index-menu { transform: rotate(90deg); opacity: 0; }
+  .index-button[aria-expanded="true"] .index-chevron { transform: rotate(0deg); opacity: 1; }
 }
 @media (min-width: 1024px) and (max-width: 1150px) {
   .home-heading { flex-wrap: wrap; }
@@ -374,5 +378,6 @@ input[type=file] { font-size: 11px; padding: 11px 8px; }
   .toast, .toast.visible { transform: translateX(-50%); }
   .tree-chevron { transition: none; }
   .page-shell { transition: none; }
+  .index-glyph svg { transition: opacity 100ms linear; transform: none !important; }
   button:active, .button:active { transform: none; }
 }

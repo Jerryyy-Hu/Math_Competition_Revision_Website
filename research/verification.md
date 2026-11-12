@@ -43,4 +43,10 @@ The navigation check exposed an ambiguous expand/jump target. The index now uses
 
 ## Limits
 
+### Navigation header and icon polish
+
+The drawer now has a single Index heading in its top row. Its entrance and exit use horizontal translation without a drawer-opacity fade. Both desktop trigger glyphs occupy the same 20px square: opening rotates the menu from 0 to 90 degrees while fading it out, and rotates the left chevron from -90 to 0 degrees while fading it in. Closing reverses these transitions. A two-frame entrance setup preserves the painted off-screen starting state, and existing version guards protect rapid reversals.
+
+The existing content, route, rendering, and JavaScript syntax checks passed after these changes. The computer-use tool stopped the attempted Windows browser inspection because it could not determine the current browser URL reliably enough to enforce its policy. No further computer input was attempted. This revision's visual motion has therefore not been verified in a browser; the earlier browser results above apply to the preceding responsive-navigation revision.
+
 These are representative browser flows, not an exhaustive test of every possible input or browser. No physical phone was available; touch behaviour, safe areas, software keyboards, and animation feel on real hardware remain unverified. Original/classical practice exercises are not claimed to reproduce the difficulty distribution of official BMO or BMT papers.

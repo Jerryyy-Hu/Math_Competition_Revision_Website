@@ -18,7 +18,10 @@
       <div class="header-inner">
       <div class="header-start">
         <button id="index-button" class="icon-button index-button" aria-label="Open navigation index" aria-haspopup="dialog" aria-controls="index-dialog" aria-expanded="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <span class="index-glyph" aria-hidden="true">
+            <svg class="index-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            <svg class="index-chevron" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg>
+          </span>
         </button>
         <a class="wordmark" href="#/" aria-label="Lemma home">lemma<span>.</span></a>
       </div>
@@ -34,8 +37,7 @@
     <footer class="site-footer"><a href="#/" class="footer-brand">lemma.</a><span>A personal mathematics library</span><button id="backup-button" class="text-button">Export materials</button><label class="text-button import-label">Import<input type="file" id="import-input" accept="application/json,.json" hidden></label></footer>
     </div>
     <dialog id="index-dialog" class="drawer" aria-labelledby="index-title">
-      <div class="drawer-header"><a class="wordmark" href="#/">lemma<span>.</span></a><button class="icon-button" data-close="index-dialog" aria-label="Close navigation">×</button></div>
-      <div class="drawer-heading"><span class="eyebrow">THE COLLECTIONS</span><h2 id="index-title">Index.</h2></div>
+      <div class="drawer-header"><h2 id="index-title">Index</h2><button class="icon-button" data-close="index-dialog" aria-label="Close navigation">×</button></div>
       <a class="drawer-home" href="#/">All collections <span aria-hidden="true">↗</span></a>
       <nav id="index-tree" class="index-tree" aria-label="Competition, subject, and topic index"></nav>
       <div class="drawer-utility"><a href="#/saved">Saved ideas ↗</a><a href="#/materials">My materials ↗</a></div>
