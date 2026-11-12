@@ -4,8 +4,8 @@ import { resolve } from 'node:path';
 
 const files = [
   '.gitignore', '.github/workflows/pages.yml', 'package.json', 'README.md',
-  'research/bmo-combinatorics.md', 'research/bmo-practice-sources.md', 'research/bmt-format-sources.md', 'research/verification.md',
-  'scripts/check-content.mjs', 'scripts/check-math.mjs', 'scripts/check-study-state.mjs', 'scripts/check-browser.mjs', 'scripts/check-sources.mjs',
+  'research/bmo-combinatorics.md', 'research/bmo-practice-sources.md', 'research/bmt-format-sources.md', 'research/verification.md', 'research/content-depth-audit.md',
+  'scripts/check-content.mjs', 'scripts/check-math.mjs', 'scripts/check-study-state.mjs', 'scripts/check-browser.mjs', 'scripts/check-sources.mjs', 'scripts/check-knowledge.mjs',
   'scripts/vendor-katex.mjs', 'scripts/serve.mjs', 'scripts/package-source.mjs',
   ...readdirSync('site/dist', { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile()).map((entry) => resolve(entry.parentPath, entry.name).slice(resolve('.').length + 1).replaceAll('\\', '/')).sort(),
 ];

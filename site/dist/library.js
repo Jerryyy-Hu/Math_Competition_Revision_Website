@@ -5,6 +5,8 @@ import { applyTechniqueDetails } from './technique-details.js';
 import { applyBmoPresentation } from './bmo-presentation.js';
 import { bmtCollection, bmtRouteAliases } from './bmt-content.js';
 import { bmoPastPapers } from './bmo-past-papers.js';
+import { appendKnowledge } from './knowledge-additions.js';
+import { applyKnowledgeDepth } from './knowledge-depth.js';
 
 const [bmoCollection] = applyTechniqueDetails([applyBmoNotes(bmoCollections[0])]);
 applyBmoPresentation(bmoCollection);
@@ -16,6 +18,8 @@ for (const subject of bmoCollection.subjects) {
   }
 }
 export const collections = [bmoCollection, bmtCollection, ...additionalCollections.filter((collection) => collection.scaffold)];
+appendKnowledge(collections);
+applyKnowledgeDepth(collections);
 export const allTopics = collections.flatMap((collection) => collection.subjects.flatMap((subject) => subject.topics.map((topic) => ({
   ...topic, collection, subject, key: `${collection.id}/${subject.id}/${topic.id}`,
 }))));

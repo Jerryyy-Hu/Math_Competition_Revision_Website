@@ -44,8 +44,14 @@ async function waitFor(expression) {
 }
 
 const click = (selector) => evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,detail:1,button:0}))`);
+async function pressKey(key, code, windowsVirtualKeyCode) {
+  const text = key === 'Enter' ? '\r' : '';
+  await send('Input.dispatchKeyEvent', { type: text ? 'keyDown' : 'rawKeyDown', key, code, windowsVirtualKeyCode, ...(text ? { text, unmodifiedText: text } : {}) });
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode });
+}
 const metrics = (width, height = 1000) => send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 760 });
 async function screenshot(name) {
+  await evaluate(`Promise.allSettled((document.querySelector('main')?.getAnimations()||[]).map(animation=>animation.finished)).then(()=>true)`);
   const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   writeFileSync(resolve(`artifacts/${name}.png`), Buffer.from(shot.data, 'base64'));
 }
@@ -153,6 +159,9 @@ try {
     await metrics(width, 900);
     for (const topic of allTopics.filter((item) => !item.scaffold)) {
       await route(topic.key);
+      assert.equal(await evaluate(`document.querySelectorAll('.technique-core').length===document.querySelectorAll('[data-technique-heading]').length`), true);
+      assert.equal(await evaluate(`document.querySelectorAll('[data-extensions][open]').length`), 0, 'Extensions should start collapsed on normal topic routes.');
+      await evaluate(`document.querySelectorAll('[data-extensions]').forEach(details=>details.open=true)`);
       const layout = await evaluate(`({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,math:document.querySelectorAll('math').length,fractions:document.querySelectorAll('mfrac').length,buttons:[...document.querySelector('.exercise-buttons').children].map(x=>({top:x.getBoundingClientRect().top,height:x.getBoundingClientRect().height}))})`);
       assert(layout.scroll <= layout.width + 1, `Page overflow at ${width}px: ${topic.key}`);
       assert(layout.math > 0, `Math not rendered: ${topic.key}`);
@@ -160,7 +169,7 @@ try {
       const centres = layout.buttons.map((button) => button.top + button.height / 2);
       assert(Math.max(...centres) - Math.min(...centres) < 2, `Practice actions left their shared row at ${width}px: ${topic.key}`);
     }
-    results.push(`All 26 populated topics render at ${width}px without page overflow; practice controls share one row.`);
+    results.push(`All 26 populated topics, including every expanded extension, render at ${width}px without page overflow; practice controls share one row.`);
   }
   assert(stackedFractions, 'The browser must contain native stacked fractions.');
 
@@ -169,6 +178,73 @@ try {
   await evaluate(`document.querySelectorAll('[data-technique-heading]')[2].scrollIntoView({behavior:'instant'})`);
   await sleep(200);
   await screenshot('revision-math');
+
+  await route('bmo/algebra/identities');
+  await screenshot('knowledge-desktop');
+  assert.equal(await evaluate(`document.querySelectorAll('[data-extensions][open]').length`), 0);
+  await evaluate(`{const summary=document.querySelector('[data-extensions] > summary');summary.scrollIntoView({behavior:'instant',block:'center'});summary.focus()}`);
+  await pressKey('Enter', 'Enter', 13);
+  assert.equal(await evaluate(`document.querySelector('[data-extensions]').open`), true, 'Native extension disclosure must support Enter.');
+  await pressKey('Enter', 'Enter', 13);
+  assert.equal(await evaluate(`document.querySelector('[data-extensions]').open`), false);
+  results.push('Every technique has a highlighted core; extensions start collapsed and support native keyboard toggling.');
+
+  const home = async () => {
+    await evaluate(`location.hash='#/'`);
+    await waitFor(`document.querySelector('#topic-search')`);
+  };
+  const search = (query) => evaluate(`{const input=document.querySelector('#topic-search');input.focus();input.value=${JSON.stringify(query)};input.dispatchEvent(new InputEvent('input',{bubbles:true}))}`);
+  await home();
+  await search('因式分解');
+  const tags = await evaluate(`[...document.querySelectorAll('[data-search-result]')].slice(0,2).map(result=>result.querySelector('.competition-tag').textContent)`);
+  assert.deepEqual(tags, ['BMO', 'BMT']);
+  assert.equal(await evaluate(`document.querySelector('#topic-search').getAttribute('aria-controls')===document.querySelector('[role=listbox]').id`), true);
+  await screenshot('knowledge-search');
+  await pressKey('Escape', 'Escape', 27);
+  assert.equal(await evaluate(`document.querySelector('#search-results').hidden`), true);
+
+  await search('因式分解');
+  await evaluate(`{const input=document.querySelector('#topic-search');input.value='费马';input.dispatchEvent(new InputEvent('input',{bubbles:true,isComposing:true}));input.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'Enter',isComposing:true}))}`);
+  assert.equal(await evaluate(`document.querySelector('[data-search-result] strong').textContent`), '因式分解', 'Incomplete IME input should not replace suggestions or navigate.');
+  assert.equal(await evaluate(`location.hash`), '#/');
+  await evaluate(`document.querySelector('#topic-search').dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}))`);
+  assert.equal(await evaluate(`document.querySelector('[data-search-result] strong').textContent`), '费马小定理');
+  results.push('Chinese IME composition updates on commit and does not use the commit key to open a result.');
+
+  await search('Sophie Germain');
+  await pressKey('ArrowDown', 'ArrowDown', 40);
+  assert.equal(await evaluate(`document.querySelector('#topic-search').getAttribute('aria-activedescendant')`), 'search-option-0');
+  await pressKey('Enter', 'Enter', 13);
+  await waitFor(`document.activeElement?.id==='technique-factorisation--sophie-germain'`);
+  assert.equal(await evaluate(`document.activeElement.closest('[data-extensions]').open`), true);
+  const target = await evaluate(`({top:document.activeElement.getBoundingClientRect().top,header:document.querySelector('.site-header').getBoundingClientRect().bottom})`);
+  assert(target.top >= target.header && target.top < target.header + 60, 'Search target must be visible below the sticky header.');
+  await screenshot('knowledge-extensions');
+  await send('Page.reload');
+  await waitFor(`document.activeElement?.id==='technique-factorisation--sophie-germain'`);
+  assert.equal(await evaluate(`document.activeElement.closest('[data-extensions]').open`), true);
+  results.push('Ranked keyword suggestions show competition tags; ArrowDown/Enter opens and focuses the matching extension, including after reload.');
+
+  await home();
+  await search('zzzzzz-no-such-mathematics');
+  assert.equal(await evaluate(`document.querySelectorAll('[data-search-result]').length`), 0);
+  assert.equal(await evaluate(`document.querySelector('#collection-home').hidden`), false);
+  await search('');
+  assert.equal(await evaluate(`document.querySelector('#search-results').hidden`), true);
+  await search('权方和');
+  await click('[data-search-result]');
+  await waitFor(`document.activeElement?.id==='technique-cauchy-schwarz--power-sum'`);
+  results.push('Chinese extension keywords, empty queries and no-result states work without hiding the library.');
+
+  await metrics(391, 850);
+  await home();
+  await search('因子和');
+  const searchLayout = await evaluate(`({viewport:document.documentElement.clientWidth,left:document.querySelector('#search-results').getBoundingClientRect().left,right:document.querySelector('#search-results').getBoundingClientRect().right})`);
+  assert(searchLayout.left >= 0 && searchLayout.right <= searchLayout.viewport, 'Mobile suggestions must stay within the viewport.');
+  await click('[data-search-result]');
+  await waitFor(`document.activeElement?.id==='technique-divisor-sum'`);
+  await screenshot('knowledge-mobile');
+  results.push('Mobile keyword suggestions fit the viewport and jump directly to the requested divisor formula.');
 
   await metrics(391, 850);
   await route('bmo/combinatorics/graphs');

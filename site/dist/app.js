@@ -3,7 +3,7 @@ import * as views from './views.js';
 import { getMaterials, saveMaterial, readPreferences, writePreferences, exportMaterials, importMaterials } from './storage.js';
 import { createNavigation } from './navigation.js';
 import { createReadingOutline } from './reading-outline.js';
-import { problemKey } from './study-state.js';
+import { problemKey, techniqueId } from './study-state.js';
 
 const main = document.querySelector('main');
 const preferences = readPreferences();
@@ -74,8 +74,23 @@ for (const dialog of document.querySelectorAll('dialog:not(#index-dialog)')) {
 }
 
 function routeParts() {
-  const route = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).join('/');
+  const route = location.hash.split('?')[0].replace(/^#\/?/, '').split('/').filter(Boolean).join('/');
   return resolveTopicKey(route).split('/').filter(Boolean);
+}
+
+function focusSearchTarget(topic) {
+  if (!topic) return;
+  const params = new URLSearchParams(location.hash.split('?')[1] || '');
+  const item = topic.bullets.find((entry) => techniqueId(entry) === params.get('technique'));
+  if (!item) return;
+  const extension = item.extensions.find((entry) => entry.id === params.get('extension'));
+  const target = document.getElementById(`${techniqueId(item)}${extension ? `--${extension.id}` : ''}`);
+  if (!target) return;
+  const details = target.closest('[data-extensions]');
+  if (details) details.open = true;
+  target.classList.add('is-search-target');
+  target.focus({ preventScroll: true });
+  target.scrollIntoView({ behavior: 'instant', block: 'start' });
 }
 
 async function renderRoute({ initial = false, preserveScroll = false, instant = false } = {}) {
@@ -123,6 +138,7 @@ async function renderRoute({ initial = false, preserveScroll = false, instant = 
   if (!preserveScroll) window.scrollTo({ top: 0, behavior: 'instant' });
   disposeOutline = createReadingOutline(main);
   if (!initial) main.focus({ preventScroll: true });
+  focusSearchTarget(currentTopic);
   if (!initial && !instant) {
     pageAnimation = main.animate(reduceMotion.matches ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(5px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: reduceMotion.matches ? 100 : 180, easing: 'cubic-bezier(.23,1,.32,1)' });
   }
@@ -223,13 +239,56 @@ document.addEventListener('click', async (event) => {
   }
 });
 
-document.addEventListener('input', (event) => {
-  if (event.target.id !== 'topic-search') return;
-  const query = event.target.value.trim();
-  document.querySelector('#collection-home').hidden = Boolean(query);
+function closeSearch() {
+  const input = document.querySelector('#topic-search');
   const results = document.querySelector('#search-results');
+  if (!input || !results) return;
+  input.setAttribute('aria-expanded', 'false');
+  input.removeAttribute('aria-activedescendant');
+  results.hidden = true;
+}
+
+function updateSearch() {
+  const input = document.querySelector('#topic-search');
+  if (!input) return;
+  const query = input.value.trim();
+  const results = document.querySelector('#search-results');
+  results.innerHTML = query ? views.searchResults(query, preferences) : '<div id="search-options" role="listbox" aria-label="Matching knowledge"></div>';
   results.hidden = !query;
-  results.innerHTML = query ? views.searchResults(query, preferences) : '';
+  input.setAttribute('aria-expanded', String(Boolean(query)));
+  input.removeAttribute('aria-activedescendant');
+  const count = results.querySelectorAll('[data-search-result]').length;
+  document.querySelector('#search-status').textContent = query ? `${count} 条匹配，按关联度排序。使用上下方向键选择，Enter 打开。` : '';
+}
+
+document.addEventListener('input', (event) => {
+  if (event.target.id === 'topic-search' && !event.isComposing) updateSearch();
+});
+document.addEventListener('compositionend', (event) => { if (event.target.id === 'topic-search') updateSearch(); });
+document.addEventListener('focusin', (event) => { if (event.target.id === 'topic-search') updateSearch(); });
+document.addEventListener('focusout', (event) => {
+  if (event.target.closest('.search-field') && !event.target.closest('.search-field').contains(event.relatedTarget)) closeSearch();
+});
+document.addEventListener('pointerdown', (event) => { if (!event.target.closest('.search-field')) closeSearch(); });
+document.addEventListener('click', (event) => {
+  if (event.target.id === 'topic-search' && document.querySelector('#search-results')?.hidden) updateSearch();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.target.id !== 'topic-search' || event.isComposing || event.keyCode === 229) return;
+  if (event.key === 'Escape' || event.key === 'Tab') { closeSearch(); return; }
+  if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
+  const input = event.target;
+  const results = document.querySelector('#search-results');
+  if (results.hidden) updateSearch();
+  const options = [...results.querySelectorAll('[data-search-result]')];
+  if (!options.length) return;
+  event.preventDefault();
+  let index = options.findIndex((option) => option.id === input.getAttribute('aria-activedescendant'));
+  if (event.key === 'Enter') { options[Math.max(index, 0)].click(); return; }
+  index = event.key === 'ArrowDown' ? (index + 1) % options.length : (index <= 0 ? options.length : index) - 1;
+  options.forEach((option, position) => option.setAttribute('aria-selected', String(position === index)));
+  input.setAttribute('aria-activedescendant', options[index].id);
+  options[index].scrollIntoView({ behavior: 'instant', block: 'nearest' });
 });
 
 document.addEventListener('change', (event) => {

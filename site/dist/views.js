@@ -2,6 +2,7 @@ import { collections, allTopics, activeTopics, topicMap, totals, collectionSourc
 import { methodGroups, evidence, qualifications } from './research.js';
 import { richText, displayMath } from './math.js';
 import { techniqueId, techniqueKey, problemKey } from './study-state.js';
+import { searchKnowledge } from './search.js';
 
 const arrow = '<span class="card-arrow" aria-hidden="true">↗</span>';
 const label = (text) => `<span class="eyebrow">${text}</span>`;
@@ -21,13 +22,13 @@ export function topicCard(topic, index = 0, preferences = {}) {
 
 export function homePage(preferences) {
   const lastTopic = topicMap.get(preferences.last) || topicMap.get('bmo/combinatorics/counting');
-  return `<section class="home-heading"><div>${label('THE PERSONAL STUDY LIBRARY')}<h1>Mathematics,<br><em>collected.</em></h1></div><label class="search-box">${icons.search}<input type="search" id="topic-search" placeholder="Find a topic or technique" aria-label="Search topics and techniques" autocomplete="off"></label></section>
+  return `<section class="home-heading"><div>${label('THE PERSONAL STUDY LIBRARY')}<h1>Mathematics,<br><em>collected.</em></h1></div><div class="search-field"><label class="search-box">${icons.search}<input type="search" id="topic-search" placeholder="搜索知识点 / Find an idea" aria-label="Search topics, techniques and extensions" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-options" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search"></label><div id="search-results" class="search-results" hidden></div><span id="search-status" class="sr-only" role="status" aria-live="polite"></span></div></section>
     <div id="collection-home"><div class="section-line">${label('YOUR COLLECTIONS')}<span class="count">${totals.topics} topics &nbsp; / &nbsp; ${totals.exercises} practice problems</span></div>
     <div class="collection-grid">${collections.map((collection, index) => {
       const topics = allTopics.filter((topic) => topic.collection.id === collection.id);
       return `<a class="collection-card ${collection.color} ${collection.scaffold ? 'scaffold' : ''}" href="#/${collection.id}"><div class="card-top"><span class="card-number">0${index + 1} / ${collection.scaffold ? 'FRAMEWORK' : 'COLLECTION'}</span>${arrow}</div><div class="card-art">${artwork(collection.symbol)}</div><div class="card-body"><h2>${e(collection.name)}</h2><p class="full-name">${e(collection.fullName)}</p><div class="card-footer"><span>${collection.subjects.length} subjects</span><span class="dot"></span><span>${topics.length} ${collection.scaffold ? 'categories' : 'topics'}</span>${!collection.scaffold ? '<span aria-hidden="true">→</span>' : ''}</div></div></a>`;
     }).join('')}</div>
-    <div class="home-bottom"><div class="study-note">${label('A NOTE ON THE NOTES')}<h3>Understand. Then prove.</h3><p lang="zh-CN">中文讲解与 hints，中英双语技巧名，英文题目与解析。真题附官方原卷链接；题意重述与原创训练均明确区分。</p></div><a class="continue-link" href="${routeFor(lastTopic)}"><div class="continue-icon" aria-hidden="true">${preferences.last ? '↗' : '∑'}</div><div class="continue-text">${label(preferences.last ? 'PICK UP WHERE YOU LEFT OFF' : 'A PLACE TO BEGIN')}<h3>${e(lastTopic.title)}</h3><p>${e(lastTopic.collection.name)} &nbsp; / &nbsp; ${e(lastTopic.subject.name)}</p></div><span aria-hidden="true">↗</span></a></div></div><div id="search-results" class="search-results" hidden></div>`;
+    <div class="home-bottom"><div class="study-note">${label('A NOTE ON THE NOTES')}<h3>Understand. Then prove.</h3><p lang="zh-CN">每个知识点先看直白解释与核心公式，再按需展开拓展。中文讲解与 hints，中英双语技巧名，英文题目与解析；真题附官方原卷链接。</p></div><a class="continue-link" href="${routeFor(lastTopic)}"><div class="continue-icon" aria-hidden="true">${preferences.last ? '↗' : '∑'}</div><div class="continue-text">${label(preferences.last ? 'PICK UP WHERE YOU LEFT OFF' : 'A PLACE TO BEGIN')}<h3>${e(lastTopic.title)}</h3><p>${e(lastTopic.collection.name)} &nbsp; / &nbsp; ${e(lastTopic.subject.name)}</p></div><span aria-hidden="true">↗</span></a></div></div>`;
 }
 
 export function collectionPage(collection, preferences) {
@@ -43,6 +44,14 @@ export function subjectPage(collection, subject, preferences) {
   return `${breadcrumbs([[collection.name, `#/${collection.id}`], [subject.name]])}<section class="page-heading"><div>${label(`${collection.name} / ${collection.scaffold ? 'FRAMEWORK' : 'SUBJECT'}`)}<h1>${e(subject.name)}</h1>${subject.description ? `<p>${e(subject.description)}</p>` : ''}</div><div class="heading-badge"><span>${topics.length}</span><small>${collection.scaffold ? 'categories' : 'topics'}</small></div></section><div class="topic-grid">${topics.map((topic, index) => topicCard(topic, index, preferences)).join('')}</div>${collection.id === 'bmo' && subject.id === 'combinatorics' ? `<div class="research-callout"><div><h3>A broader combinatorics toolkit</h3><p lang="zh-CN">查阅凝练关键词、适用条件与历年官方题目证据。</p></div><a class="button" href="#/bmo/review">Method map ↗</a></div>` : ''}`;
 }
 
+function extensionBlock(item, extension) {
+  return `<article class="extension-item" id="${techniqueId(item)}--${e(extension.id)}" tabindex="-1">
+    <h3><span lang="zh-CN">${e(extension.nameZh)}</span><span class="technique-term" lang="en">${e(extension.name)}</span></h3>
+    <p lang="zh-CN">${richText(extension.text)}</p>${extension.formula ? `<div class="formula extension-formula" aria-label="Extension formula">${displayMath(extension.formula)}</div>` : ''}
+    ${extension.example ? `<p class="extension-example" lang="zh-CN"><span class="technique-label" lang="en">Example / Insight</span>${richText(extension.example)}</p>` : ''}
+    ${extension.pitfall ? `<p class="technique-pitfall" lang="zh-CN"><span lang="en">Watch out.</span> ${richText(extension.pitfall)}</p>` : ''}</article>`;
+}
+
 function techniqueBlock(topic, item, preferences) {
   const key = techniqueKey(topic, item);
   const marked = preferences.markedTechniques?.includes(key) || false;
@@ -50,8 +59,11 @@ function techniqueBlock(topic, item, preferences) {
   return `<li class="technique ${marked ? 'is-marked' : ''}" data-technique-key="${e(key)}">
     <div class="technique-heading-row"><h2 id="${techniqueId(item)}" tabindex="-1" data-technique-heading><span lang="zh-CN">${e(title)}</span><span class="technique-term" lang="en">${e(item.name)}</span></h2>
     <button class="technique-mark ${marked ? 'is-marked' : ''}" data-mark-technique="${e(key)}" aria-pressed="${marked}" aria-label="${marked ? 'Unmark' : 'Mark'} technique: ${e(title)}">${icons.bookmark}<span>${marked ? 'Marked' : 'Mark'}</span></button></div>
-    <p lang="zh-CN">${richText(item.text)} ${richText(item.method)}</p>${item.formula ? `<div class="formula" aria-label="Formula">${displayMath(item.formula)}</div>` : ''}
-    <p class="technique-example" lang="zh-CN"><span class="technique-label" lang="en">Example</span>${richText(item.example)}</p><p class="technique-pitfall" lang="zh-CN"><span lang="en">Watch out.</span> ${richText(item.pitfall)}</p></li>`;
+    <div class="technique-basic"><span class="technique-level" lang="zh-CN">基础</span><p class="technique-explanation" lang="zh-CN">${richText(item.explanation)}</p>
+    <div class="technique-core"><span class="core-label" lang="zh-CN">核心</span><p lang="zh-CN"><strong>${richText(item.core)}</strong></p>${item.formula ? `<div class="formula core-formula" aria-label="Core formula">${displayMath(item.formula)}</div>` : ''}</div>
+    <p class="technique-method" lang="zh-CN"><span class="technique-label" lang="en">How to use</span>${item.text !== item.explanation ? `${richText(item.text)} ` : ''}${richText(item.method)}</p>
+    <p class="technique-example" lang="zh-CN"><span class="technique-label" lang="en">Example</span>${richText(item.example)}</p><p class="technique-pitfall" lang="zh-CN"><span lang="en">Watch out.</span> ${richText(item.pitfall)}</p></div>
+    ${item.extensions.length ? `<details class="technique-extensions" data-extensions><summary lang="zh-CN">拓展</summary><div class="extension-list">${item.extensions.map((extension) => extensionBlock(item, extension)).join('')}</div></details>` : ''}</li>`;
 }
 
 function exerciseBlock(topic, problem, index, preferences) {
@@ -120,11 +132,7 @@ export function indexTree(route) {
 }
 
 export function searchResults(query, preferences) {
-  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const results = allTopics.filter((topic) => {
-    const haystack = [topic.title, topic.description, topic.collection.name, topic.subject.name, ...topic.bullets.flatMap((item) => [item.nameZh, item.name, item.text, item.method, item.example, item.pitfall])].join(' ').toLowerCase();
-    return words.every((word) => haystack.includes(word));
-  });
-  if (!results.length) return '<div class="empty-state"><h2>No matching ideas yet.</h2><p lang="zh-CN">试试其他术语、知识点或中文关键词。</p></div>';
-  return `${label(`${results.length} MATCHING ${results.length === 1 ? 'TOPIC' : 'TOPICS'}`)}<div class="topic-grid">${results.map((topic, index) => topicCard(topic, index, preferences)).join('')}</div>`;
+  const { total, results } = searchKnowledge(query, Infinity);
+  if (!results.length) return '<div id="search-options" role="listbox" aria-label="Matching knowledge"></div><p class="search-empty" lang="zh-CN">没有匹配内容。试试「因子和」「Sophie Germain」「权方和」等关键词。</p>';
+  return `<p class="search-count" lang="zh-CN">${total} 条匹配 · 按关联度排序</p><div id="search-options" class="search-options" role="listbox" aria-label="Matching knowledge">${results.map((result, index) => `<a class="search-result" id="search-option-${index}" role="option" aria-selected="false" href="${e(result.href)}" data-search-result tabindex="-1"><span class="search-result-top"><span class="competition-tag ${e(result.topic.collection.color)}">${e(result.topic.collection.name)}</span><span class="search-result-subject">${e(result.topic.subject.name)}${result.extension ? ' · 拓展' : ''}</span>${preferences.saved?.includes(result.topic.key) ? `<span class="search-saved" aria-label="Saved topic">${icons.bookmark}</span>` : ''}</span><strong>${e(result.title)}</strong>${result.term ? `<span class="search-term" lang="en">${e(result.term)}</span>` : ''}<span class="search-context">${e(result.topic.title)}${result.extension ? ` / ${e(result.item.nameZh)}` : ''}</span><span class="search-snippet" lang="zh-CN">${richText(result.summary)}</span></a>`).join('')}</div><p class="search-help" lang="zh-CN">↑ ↓ 选择 · Enter 打开 · Esc 收起</p>`;
 }

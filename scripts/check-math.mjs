@@ -12,11 +12,19 @@ const checkText = (value, context) => {
     expressions++;
   }
   const prose = value.replace(/\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]/g, '');
-  assert(!/[²³⁴⁵⁶⁷⁸⁹⁰₀₁₂₃₄₅₆₇₈₉√∛Σ∑∠≡]/u.test(prose), `Unformatted legacy mathematics: ${context} / ${prose}`);
+  assert(!/[²³⁴⁵⁶⁷⁸⁹⁰₀₁₂₃₄₅₆₇₈₉ⁿᵏ√∛Σ∑∠≡]/u.test(prose), `Unformatted legacy mathematics: ${context} / ${prose}`);
 };
 for (const topic of allTopics) {
   for (const item of topic.bullets) {
-    for (const field of ['text', 'method', 'example', 'pitfall']) checkText(item[field], `${topic.key} / ${item.name} / ${field}`);
+    for (const field of ['text', 'method', 'example', 'pitfall', 'explanation', 'core']) checkText(item[field], `${topic.key} / ${item.name} / ${field}`);
+    for (const extension of item.extensions) {
+      for (const field of ['text', 'example', 'pitfall']) checkText(extension[field], `${topic.key} / ${item.name} / ${extension.id} / ${field}`);
+      if (extension.formula) {
+        assert(!extension.formula.includes('/'), `${topic.key} / ${extension.id}`);
+        assert(displayMath(extension.formula).includes('<math'));
+        expressions++;
+      }
+    }
     if (item.formula) {
       assert(!item.formula.includes('/'), `${topic.key} / ${item.name}`);
       assert(displayMath(item.formula).includes('<math'));
