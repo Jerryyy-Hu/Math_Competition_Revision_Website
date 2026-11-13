@@ -60,5 +60,5 @@ assert.equal(normaliseSearch('  Hölder — Cauchy–Schwarz  '), 'holder cauchy
 assert.deepEqual(searchKnowledge('   '), { total: 0, results: [] });
 assert.equal(searchKnowledge('zzzzzz-no-such-mathematics').total, 0);
 assert(!searchResults('<img src=x onerror=alert(1)>', preferences).includes('<img'));
-assert.equal(totals.topics, 26, 'Existing topic routes must stay stable.');
+assert.equal(totals.topics, 63, 'The 26 existing chapters and 37 admissions chapters must be available.');
 console.log(JSON.stringify({ techniques: techniques.length, techniquesWithExtensions: techniques.filter((item) => item.extensions.length).length, extensions: techniques.flatMap((item) => item.extensions).length, keywordAndRankingScenarios: scenarios.length, checks: 'passed' }, null, 2));

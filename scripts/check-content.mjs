@@ -9,7 +9,7 @@ import { techniqueId, techniqueKey, problemKey } from '../site/dist/study-state.
 const preferences = { saved: [], read: [], markedTechniques: [], reviewedProblems: [], last: null };
 assert.equal(collections.length, 5);
 assert.equal(topicMap.size, allTopics.length, 'Topic routes must be unique.');
-assert.equal(totals.topics, 26);
+assert.equal(totals.topics, 63);
 assert(totals.exercises >= 74);
 assert.deepEqual(collections.find((collection) => collection.id === 'bmt').subjects.map((subject) => subject.name), ['Algebra', 'Calculus', 'Discrete', 'Geometry', 'Team Rounds']);
 assert.equal(resolveTopicKey('bmt/number-theory/congruences'), 'bmt/discrete/discrete-structures');
@@ -32,7 +32,11 @@ for (const topic of allTopics) {
     continue;
   }
   assert(topic.bullets.length >= 4);
-  assert(topic.exercises.filter((problem) => problem.source).length >= 2, `Each populated topic needs at least two official practice assignments: ${topic.key}`);
+  if (['bmo', 'bmt'].includes(topic.collection.id)) {
+    assert(topic.exercises.filter((problem) => problem.source).length >= 2, `Existing competition topics retain official practice: ${topic.key}`);
+  } else {
+    assert(topic.exercises.length >= 2 && topic.exercises.every((problem) => problem.origin === 'original'), `Admissions chapters need labelled original drills: ${topic.key}`);
+  }
   assert.equal(new Set(topic.bullets.map(techniqueId)).size, topic.bullets.length, `Technique anchor collision: ${topic.key}`);
   assert.equal(new Set(topic.exercises.map((problem) => problemKey(topic, problem))).size, topic.exercises.length, `Exercise identity collision: ${topic.key}`);
   assert(renderedTopic.includes('>Practice</h2>'));
@@ -72,7 +76,7 @@ const tree = indexTree('bmo/combinatorics/counting');
 for (const topic of allTopics) assert(tree.includes(`href="#/${topic.key}"`), `Missing index destination: ${topic.key}`);
 assert(tree.includes('aria-current="page"'));
 assert.equal(escapeHtml('<script>"x"</script>'), '&lt;script&gt;&quot;x&quot;&lt;/script&gt;');
-assert(homePage(preferences).includes('26 topics'));
+assert(homePage(preferences).includes('63 topics'));
 assert(reviewPage().includes('BMO1 2024'));
 const html = readFileSync(new URL('../site/dist/index.html', import.meta.url), 'utf8');
 assert(html.includes('viewport-fit=cover'));

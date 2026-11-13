@@ -17,7 +17,23 @@ export function sourceLinks(collection) {
 
 export function topicCard(topic, index = 0, preferences = {}) {
   const read = preferences.read?.includes(topic.key);
-  return `<a class="topic-card" href="${routeFor(topic)}"><span class="topic-number">${String(index + 1).padStart(2, '0')}</span><div class="topic-card-content"><h3>${e(topic.title)}</h3>${topic.description ? `<p lang="zh-CN">${e(topic.description)}</p>` : ''}<div class="topic-tags">${topic.scaffold ? '<span>Category only</span>' : `<span>${topic.bullets.length} techniques</span><span>${topic.exercises.length} practice ${topic.exercises.length === 1 ? 'problem' : 'problems'}</span>`}${read ? '<span class="read-tag">✓ Reviewed</span>' : ''}</div></div>${arrow}</a>`;
+  return `<a class="topic-card" href="${routeFor(topic)}"><span class="topic-number">${String(index + 1).padStart(2, '0')}</span><div class="topic-card-content"><h3>${e(topic.title)}</h3>${topic.description ? `<p lang="zh-CN">${e(topic.description)}</p>` : ''}<div class="topic-tags">${topic.scope ? `<span>${e(topic.scope)}</span>` : ''}${topic.scaffold ? '<span>Category only</span>' : `<span>${topic.bullets.length} techniques</span><span>${topic.exercises.length} practice ${topic.exercises.length === 1 ? 'problem' : 'problems'}</span>`}${read ? '<span class="read-tag">✓ Reviewed</span>' : ''}</div></div>${arrow}</a>`;
+}
+
+function prerequisiteLinks(topic) {
+  return topic.prerequisites.map((key) => {
+    const prerequisite = topicMap.get(`${topic.collection.id}/${key}`);
+    return `<a href="${routeFor(prerequisite)}">${e(prerequisite.title)}</a>`;
+  }).join(' · ') || 'Start here';
+}
+
+function knowledgeFramework(collection, topics) {
+  const framework = collection.framework;
+  if (!framework) return '';
+  return `<section class="framework-overview" aria-labelledby="framework-title"><h2 id="framework-title">Knowledge framework</h2><p class="framework-baseline">${e(framework.baseline)} · Checked ${e(framework.verifiedOn)}</p>
+    <p lang="zh-CN">${e(framework.examFormat)}</p><p lang="zh-CN">${e(framework.studyOrder)}</p><p class="framework-boundary" lang="zh-CN">${e(framework.boundary)}</p>
+    <p class="sidebar-note" lang="zh-CN">下表按官方考纲主题建立学习顺序，专题划分与先修关系为本站整理。每个专题含讲解与两道原创练习，适合学习和巩固，不代表真题全卷难度或穷尽考纲细目。</p>
+    <details class="framework-map"><summary>Topic map · scope &amp; prerequisites</summary><div class="evidence-table-wrap"><table class="evidence-table"><caption class="sr-only">${e(collection.name)} topic framework and prerequisites</caption><thead><tr><th scope="col">Topic</th><th scope="col">Scope</th><th scope="col">Specification</th><th scope="col">Prerequisites</th></tr></thead><tbody>${topics.map((topic) => `<tr><td><a href="${routeFor(topic)}">${e(topic.title)}</a></td><td>${e(topic.scope)}</td><td>${e(topic.references.join('; '))}</td><td>${prerequisiteLinks(topic)}</td></tr>`).join('')}</tbody></table></div></details></section>`;
 }
 
 export function homePage(preferences) {
@@ -34,6 +50,7 @@ export function homePage(preferences) {
 export function collectionPage(collection, preferences) {
   const topics = allTopics.filter((topic) => topic.collection.id === collection.id);
   return `${breadcrumbs([[collection.name]])}<section class="page-heading"><div>${label(collection.fullName)}<h1>${e(collection.name)}</h1><p lang="zh-CN">${collection.id === 'bmo' ? '四个数学方向，一组彼此关联的解题方法。先找到关键观察，再将它写成完整证明。' : e(collection.description)}</p></div><div class="heading-badge"><span>${topics.length}</span><small>${collection.scaffold ? 'categories' : 'topics'}</small></div></section>
+    ${knowledgeFramework(collection, topics)}
     ${collection.subjects.map((subject) => `<section id="subject-${subject.id}" class="subject-section"><div class="subject-heading"><h2><a href="#/${collection.id}/${subject.id}">${e(subject.name)}</a></h2>${subject.description ? `<p>${e(subject.description)}</p>` : ''}</div><div class="topic-grid">${topics.filter((topic) => topic.subject.id === subject.id).map((topic, index) => topicCard(topic, index, preferences)).join('')}</div></section>`).join('')}
     ${collection.id === 'bmo' ? `<aside class="research-callout"><div>${label('OFFICIAL PAPERS → A REFINED TOOLKIT')}<h3>The combinatorics method map</h3><p lang="zh-CN">在原有五类基础上，补充极值、编码与博弈；保留官方真题对应证据。</p></div><a class="button" href="#/bmo/review">Read the review <span aria-hidden="true">↗</span></a></aside>` : ''}
     ${!collection.scaffold ? `<details class="source-section"><summary>Official resources</summary><div class="source-list">${sourceLinks(collection)}</div></details><p class="collection-note">${e(collection.note)}</p>` : '<p class="collection-note" lang="zh-CN">当前仅保留分类结构，尚未填充讲解、练习或真题资料。</p>'}`;
@@ -59,7 +76,7 @@ function techniqueBlock(topic, item, preferences) {
   return `<li class="technique ${marked ? 'is-marked' : ''}" data-technique-key="${e(key)}">
     <div class="technique-heading-row"><h2 id="${techniqueId(item)}" tabindex="-1" data-technique-heading><span lang="zh-CN">${e(title)}</span><span class="technique-term" lang="en">${e(item.name)}</span></h2>
     <button class="technique-mark ${marked ? 'is-marked' : ''}" data-mark-technique="${e(key)}" aria-pressed="${marked}" aria-label="${marked ? 'Unmark' : 'Mark'} technique: ${e(title)}">${icons.bookmark}<span>${marked ? 'Marked' : 'Mark'}</span></button></div>
-    <div class="technique-basic"><span class="technique-level" lang="zh-CN">基础</span><p class="technique-explanation" lang="zh-CN">${richText(item.explanation)}</p>
+    <div class="technique-basic"><span class="technique-level" lang="zh-CN">基础</span>${item.scope ? `<span class="scope-tag" lang="en">${e(item.scope)}</span>` : ''}<p class="technique-explanation" lang="zh-CN">${richText(item.explanation)}</p>
     <div class="technique-core"><span class="core-label" lang="zh-CN">核心</span><p lang="zh-CN"><strong>${richText(item.core)}</strong></p>${item.formula ? `<div class="formula core-formula" aria-label="Core formula">${displayMath(item.formula)}</div>` : ''}</div>
     <p class="technique-method" lang="zh-CN"><span class="technique-label" lang="en">How to use</span>${item.text !== item.explanation ? `${richText(item.text)} ` : ''}${richText(item.method)}</p>
     <p class="technique-example" lang="zh-CN"><span class="technique-label" lang="en">Example</span>${richText(item.example)}</p><p class="technique-pitfall" lang="zh-CN"><span lang="en">Watch out.</span> ${richText(item.pitfall)}</p></div>
@@ -70,14 +87,15 @@ function exerciseBlock(topic, problem, index, preferences) {
   const key = problemKey(topic, problem);
   const reviewed = preferences.reviewedProblems?.includes(key) || false;
   const source = problem.source;
-  const sourceName = source ? [source.competition, source.year, source.round, source.question].filter(Boolean).join(' · ') : 'Original / classical';
+  const sourceName = source ? [source.competition, source.year, source.round, source.question].filter(Boolean).join(' · ') : problem.origin === 'original' ? 'Original drill' : 'Original / classical';
   return `<article class="exercise ${reviewed ? 'is-reviewed' : ''}" data-problem-key="${e(key)}">
-    <div class="exercise-meta"><div class="exercise-origin"><span>PROBLEM ${String(index + 1).padStart(2, '0')}</span>${source ? `<a href="${e(source.url)}" target="_blank" rel="noopener noreferrer">${e(sourceName)} ↗</a>` : `<span>${sourceName}</span>`}</div><span>${source?.restated ? 'RESTATED · ' : ''}${problem.proof ? 'PROOF' : 'SHORT ANSWER'}</span></div>
+    <div class="exercise-meta"><div class="exercise-origin"><span>PROBLEM ${String(index + 1).padStart(2, '0')}</span>${source ? `<a href="${e(source.url)}" target="_blank" rel="noopener noreferrer">${e(sourceName)} ↗</a>` : `<span>${sourceName}</span>`}${problem.scope ? `<span>${e(problem.scope)}</span>` : ''}</div><span>${source?.restated ? 'RESTATED · ' : ''}${problem.format ? e(problem.format) : problem.proof ? 'PROOF' : 'SHORT ANSWER'}</span></div>
     <h3>${e(problem.title)}</h3><div class="question" lang="en">${richText(problem.question)}</div>
+    ${problem.choices ? `<ol type="A" class="exercise-options" aria-label="Answer choices" lang="en">${problem.choices.map((choice) => `<li>${richText(choice)}</li>`).join('')}</ol>` : ''}
     <div class="exercise-buttons"><button id="hint-button-${index}" class="button hint-button" data-disclosure="hint" aria-expanded="false" aria-controls="hint-${index}">${icons.hint}Hint</button><button id="solution-button-${index}" class="button solution-button" data-disclosure="solution" aria-expanded="false" aria-controls="solution-${index}">Solution <span aria-hidden="true">↓</span></button>
     <button class="button review-button ${reviewed ? 'is-reviewed' : ''}" data-review-problem="${e(key)}" aria-pressed="${reviewed}">${icons.check}<span>${reviewed ? 'Marked as reviewed' : 'Mark as reviewed'}</span></button></div>
     <div class="hint-content" id="hint-${index}" role="region" aria-labelledby="hint-button-${index}" lang="zh-CN" hidden>${richText(problem.hint)}</div>
-    <div class="solution-content" id="solution-${index}" role="region" aria-labelledby="solution-button-${index}" lang="en" hidden><ol class="solution-steps">${problem.solution.map((step) => `<li>${richText(step)}</li>`).join('')}</ol>${source?.solutionUrl ? `<a class="official-solution" href="${e(source.solutionUrl)}" target="_blank" rel="noopener noreferrer">Official solution ↗</a>` : ''}${problem.proof ? '<div class="solution-end" aria-label="End of proof">□</div>' : ''}</div></article>`;
+    <div class="solution-content" id="solution-${index}" role="region" aria-labelledby="solution-button-${index}" lang="en" hidden>${problem.answer ? `<p class="exercise-answer">Answer: ${e(problem.answer)}</p>` : ''}<ol class="solution-steps">${problem.solution.map((step) => `<li>${richText(step)}</li>`).join('')}</ol>${source?.solutionUrl ? `<a class="official-solution" href="${e(source.solutionUrl)}" target="_blank" rel="noopener noreferrer">Official solution ↗</a>` : ''}${problem.proof ? '<div class="solution-end" aria-label="End of proof">□</div>' : ''}</div></article>`;
 }
 
 function topicOutline(topic, preferences) {
@@ -94,6 +112,7 @@ export function topicPage(topic, preferences, materials) {
   const saved = preferences.saved.includes(topic.key);
   return `${breadcrumbs([[topic.collection.name, `#/${topic.collection.id}`], [topic.subject.name, `#/${topic.collection.id}/${topic.subject.id}`], [topic.title]])}
     <div class="topic-layout"><article class="topic-body"><header class="topic-heading">${label(`${topic.collection.name} / ${topic.subject.name}`)}<h1>${e(topic.title)}</h1>${topic.description ? `<p class="description" lang="zh-CN">${e(topic.description)}</p>` : ''}<div class="topic-actions"><button class="button ${saved ? 'is-saved' : ''}" data-save="${topic.key}" aria-pressed="${saved}">${icons.bookmark}${saved ? 'Saved' : 'Save topic'}</button><button class="button" data-add-topic="${topic.key}">${icons.file}Add material</button>${!topic.scaffold ? '<a href="#practice" class="button" data-scroll-practice>Practice ↓</a>' : ''}</div></header>
+    ${topic.references ? `<dl class="syllabus-meta"><div><dt>Scope</dt><dd>${e(topic.scope)}</dd></div><div><dt>Specification</dt><dd>${e(topic.references.join('; '))}</dd></div><div><dt>Prerequisites</dt><dd>${prerequisiteLinks(topic)}</dd></div></dl><p class="sidebar-note" lang="zh-CN">本站原创学习练习，非官方真题；先理解方法，再使用官方试卷检验综合能力。</p>` : ''}
     ${topic.sources?.length ? `<div class="rule-sources">${topic.sources.map((source) => `<a href="${e(source.url)}" target="_blank" rel="noopener noreferrer">${e(source.title)} ↗</a>`).join('')}</div>` : ''}
     ${topic.scaffold ? `<div class="empty-state"><span class="empty-symbol" aria-hidden="true">∅</span><h2>A space for later.</h2><p lang="zh-CN">此处暂时仅保留分类。讲解、题目和解析会在后续补充。</p><a class="button" href="#/${topic.collection.id}">Back to ${e(topic.collection.name)} ↗</a></div>` : `<ul class="technique-list topic-techniques">${topic.bullets.map((item) => techniqueBlock(topic, item, preferences)).join('')}</ul>
     <section id="practice" class="practice-section" aria-labelledby="practice-title"><div class="practice-heading"><h2 id="practice-title">Practice</h2></div>${topic.exercises.map((problem, index) => exerciseBlock(topic, problem, index, preferences)).join('')}</section>`}

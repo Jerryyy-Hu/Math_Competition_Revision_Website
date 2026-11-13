@@ -51,7 +51,7 @@ async function pressKey(key, code, windowsVirtualKeyCode) {
 }
 const metrics = (width, height = 1000) => send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 760 });
 async function screenshot(name) {
-  await evaluate(`Promise.allSettled((document.querySelector('main')?.getAnimations()||[]).map(animation=>animation.finished)).then(()=>true)`);
+  await evaluate(`Promise.allSettled((document.querySelector('main')?.getAnimations({subtree:true})||[]).map(animation=>animation.finished)).then(()=>true)`);
   const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   writeFileSync(resolve(`artifacts/${name}.png`), Buffer.from(shot.data, 'base64'));
 }
@@ -162,6 +162,10 @@ try {
       assert.equal(await evaluate(`document.querySelectorAll('.technique-core').length===document.querySelectorAll('[data-technique-heading]').length`), true);
       assert.equal(await evaluate(`document.querySelectorAll('[data-extensions][open]').length`), 0, 'Extensions should start collapsed on normal topic routes.');
       await evaluate(`document.querySelectorAll('[data-extensions]').forEach(details=>details.open=true)`);
+      if (['tmua', 'step'].includes(topic.collection.id)) {
+        await evaluate(`document.querySelectorAll('[data-disclosure]').forEach(button=>{document.getElementById(button.getAttribute('aria-controls')).hidden=false;button.setAttribute('aria-expanded','true')})`);
+      }
+      if (topic.collection.id === 'tmua') assert.equal(await evaluate(`document.querySelectorAll('.exercise-options li').length`), 5 * topic.exercises.length);
       const layout = await evaluate(`({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,math:document.querySelectorAll('math').length,fractions:document.querySelectorAll('mfrac').length,buttons:[...document.querySelector('.exercise-buttons').children].map(x=>({top:x.getBoundingClientRect().top,height:x.getBoundingClientRect().height}))})`);
       assert(layout.scroll <= layout.width + 1, `Page overflow at ${width}px: ${topic.key}`);
       assert(layout.math > 0, `Math not rendered: ${topic.key}`);
@@ -169,7 +173,7 @@ try {
       const centres = layout.buttons.map((button) => button.top + button.height / 2);
       assert(Math.max(...centres) - Math.min(...centres) < 2, `Practice actions left their shared row at ${width}px: ${topic.key}`);
     }
-    results.push(`All 26 populated topics, including every expanded extension, render at ${width}px without page overflow; practice controls share one row.`);
+    results.push(`All ${allTopics.filter((item) => !item.scaffold).length} populated topics, including every expanded extension, render at ${width}px without page overflow; practice controls share one row.`);
   }
   assert(stackedFractions, 'The browser must contain native stacked fractions.');
 
@@ -259,6 +263,43 @@ try {
   await sleep(500);
   assert.equal(await evaluate(`document.querySelector('#index-dialog').open`), false);
   results.push('Mobile drawer overlays the page, leaves content position unchanged, and dismisses on backdrop click.');
+
+  for (const width of [1440, 1024, 391, 320]) {
+    await metrics(width, 1000);
+    for (const id of ['tmua', 'step']) {
+      await evaluate(`location.hash=${JSON.stringify(`#/${id}`)}`);
+      await waitFor(`document.querySelector('.page-heading h1')?.textContent===${JSON.stringify(id.toUpperCase())} && Boolean(document.querySelector('.framework-map'))`);
+      assert.equal(await evaluate(`document.querySelector('.framework-map').open`), false);
+      if (width === 1440 && id === 'step') await screenshot('admissions-step-framework');
+      await evaluate(`document.querySelector('.framework-map').open=true`);
+      assert.equal(await evaluate(`document.querySelectorAll('.framework-map tbody tr').length`), id === 'tmua' ? 15 : 22);
+      assert.equal(await evaluate(`document.documentElement.scrollWidth<=document.documentElement.clientWidth+1`), true, `${id} framework overflow at ${width}px`);
+      if (width === 391 && id === 'tmua') {
+        await evaluate(`document.querySelector('.framework-map').scrollIntoView({behavior:'instant'})`);
+        await screenshot('admissions-tmua-framework-mobile');
+      }
+    }
+  }
+  await metrics(391, 950);
+  await route('tmua/algebra-functions/expressions');
+  assert.equal(await evaluate(`document.querySelectorAll('.exercise-options li').length`), 10);
+  await click('.hint-button');
+  await click('.solution-button');
+  assert.equal(await evaluate(`document.querySelector('.exercise-answer')?.textContent`), 'Answer: D');
+  await click('[data-mark-technique]');
+  await click('.review-button');
+  await send('Page.reload');
+  await waitFor(`document.querySelector('.technique-mark')?.getAttribute('aria-pressed')==='true' && document.querySelector('.review-button')?.getAttribute('aria-pressed')==='true'`);
+  await click('.solution-button');
+  await evaluate(`document.querySelector('#practice').scrollIntoView({behavior:'instant'})`);
+  await screenshot('admissions-tmua-practice-mobile');
+  await metrics(1440, 1100);
+  await route('step/pure/differential-equations');
+  assert.equal(await evaluate(`document.querySelectorAll('.scope-tag').length`), 5);
+  assert.equal(await evaluate(`document.querySelector('.scope-tag').textContent`), 'STEP 2 & 3');
+  assert.equal(await evaluate(`document.querySelectorAll('.scope-tag')[1].textContent`), 'STEP 3');
+  await screenshot('admissions-step-scope');
+  results.push('STEP/TMUA frameworks, scopes and prerequisite maps fit four widths, including expanded hints/solutions; all 30 TMUA exercises display options; new marks and review state survive reload; STEP 3 tools are labelled separately.');
   assert.deepEqual(errors, []);
   const report = { base, results, browserErrors: errors, physicalPhoneTested: false };
   writeFileSync(resolve('artifacts/browser-verification.json'), `${JSON.stringify(report, null, 2)}\n`);

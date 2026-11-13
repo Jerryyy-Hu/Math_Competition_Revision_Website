@@ -33,6 +33,7 @@ for (const topic of allTopics) {
   }
   for (const problem of topic.exercises) {
     for (const field of ['question', 'hint']) checkText(problem[field], `${topic.key} / ${problem.id || problem.title} / ${field}`);
+    problem.choices?.forEach((choice, index) => checkText(choice, `${problem.id} / choice ${index + 1}`));
     problem.solution.forEach((step, index) => checkText(step, `${topic.key} / ${problem.id || problem.title} / step ${index + 1}`));
   }
 }

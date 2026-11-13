@@ -6,15 +6,18 @@ A mathematics study library with a collapsible competition → subject → topic
 
 - **BMO:** 16 populated topics across algebra, combinatorics, geometry, and number theory.
 - **BMT:** 10 populated topics across Algebra, Calculus, Discrete, Geometry, and Team Rounds (Guts and Power). The four Focus subjects follow the official classification; Team Rounds is a navigation group.
-- **TMUA, STEP, University Interview:** category structures only, with no populated notes, exercises, or past-paper collections.
+- **TMUA:** 15 populated topics and 62 bilingual techniques across foundations/data, algebra/functions, geometry/calculus, and logic/proof. The framework maps MM1-MM8, M1-M7 and the Paper 2 argument/proof/error families in the official October 2026 / January 2027 specification.
+- **STEP:** 22 populated topics and 100 bilingual techniques across pure mathematics, mechanics, and probability/statistics. The framework follows the June 2026 onwards specification, distinguishing shared STEP 2/3 knowledge from individual STEP 3 additions.
+- **University Interview:** seven category entries, with no populated lessons or exercises.
 - **Language:** Chinese technique names alongside English terminology; Chinese explanations and hints; English questions and solutions.
-- **Practice:** 49 distinct official past-paper questions (29 BMO, 20 BMT), assigned to 52 relevant topic placements, plus 28 original/classical placements. Every populated topic has at least two official exercises. Statements are independently restated and link to their original papers; solutions are independently authored.
+- **Practice:** 154 placements: 49 distinct official past-paper questions (29 BMO, 20 BMT) in 52 placements, 28 existing original/classical placements, and 74 new original admissions drills. BMO/BMT retain at least two official exercises per topic. TMUA has 30 original five-option questions; STEP has 44 original linked-part exercises. Admissions drills are explicitly labelled original and are not full mocks or calibrated exam questions.
 
 ## Features
 
 - Animated slide-out index: a modal overlay on mobile and a non-modal push sidebar from 1024px upward.
 - Reserved desktop margins keep content width and line wrapping constant when the sidebar is toggled.
-- All 138 techniques include a plain Chinese explanation, a highlighted core conclusion, a method, an illustrative example, and a specific pitfall.
+- All 300 techniques include a plain Chinese explanation, a highlighted core conclusion, a method, an illustrative example, and a specific pitfall.
+- STEP/TMUA collection pages introduce the knowledge framework, dated specification baseline, study order, scope boundaries and an expandable prerequisite table. Topic pages link prerequisites and specifications; individual STEP 3 techniques and questions carry explicit scope labels.
 - 130 techniques have a native, initially collapsed `拓展` disclosure, containing 197 extension placements. The eight team-process techniques do not have artificial mathematical extensions. These counts include concepts shared between competitions.
 - Factorisation has nine common identity families, including Sophie Germain, Euler's cubic identity, and cyclic differences. Fermat leads to Euler's totient theorem; Cauchy leads to Engel form, weighted power sums, power means, and Hölder, with conditions and equality cases.
 - Coverage additions include divisor count/sum/product, CRT, multiplicative order, binomial expansion, rearrangement, convexity, triangle trigonometry, angle bisectors, Menelaus, the mean value theorem, the fundamental theorem of calculus, and binomial probability.
@@ -42,9 +45,10 @@ node scripts/check-content.mjs
 node scripts/check-math.mjs
 node scripts/check-study-state.mjs
 node scripts/check-knowledge.mjs
+node scripts/check-admissions.mjs
 ```
 
-With the preview server running, `node scripts/check-browser.mjs` uses an existing Windows Edge installation and a new isolated profile under ignored `artifacts/`. It checks all populated topics, with every extension expanded, at 1440, 1024, 391 and 320 pixels, plus ranked search, competition tags, keyboard selection, native disclosures and extension deep links. `node scripts/check-sources.mjs` checks official PDF links and needs network access.
+With the preview server running, `node scripts/check-browser.mjs` uses an existing Windows Edge installation and a new isolated profile under ignored `artifacts/`. It checks all populated topics, with every extension expanded, at 1440, 1024, 391 and 320 pixels, plus ranked search, competition tags, keyboard selection, native disclosures, extension deep links, admissions frameworks, MCQ choices and new study-state persistence. `node scripts/check-sources.mjs` checks official practice PDF links and needs network access.
 
 ## Content editing
 
@@ -57,14 +61,20 @@ With the preview server running, `node scripts/check-browser.mjs` uses an existi
 - `site/dist/knowledge-additions.js`: new techniques and three independently authored practice problems, each placed in both relevant competitions.
 - `site/dist/knowledge-depth.js`: plain explanations, core conclusions, bilingual aliases, and scoped extensions for every populated technique. Profiles are shared where the mathematics is shared; calculus substitution and team formats have context-specific profiles.
 - `site/dist/search.js`: weighted, normalised keyword index and direct result destinations.
-- `site/dist/additional-content.js`: the three category-only collections; its former BMT data is no longer used.
+- `site/dist/admissions-framework.js`: the dated STEP/TMUA scope, official source links, topic families, learning targets and prerequisite order, established before lesson authoring.
+- `site/dist/admissions-content.js` and `admissions-authoring.js`: framework/content integration, stable original exercise IDs and shared data constructors.
+- `site/dist/tmua-content.js`: 15 TMUA chapters, 62 techniques and 30 original multiple-choice drills.
+- `site/dist/step-pure-content.js`, `step-further-pure-content.js`, `step-mechanics-content.js` and `step-statistics-content.js`: 22 STEP chapters, 100 techniques and 44 original linked-part drills, with per-entry STEP 3 labels.
+- `site/dist/additional-content.js`: the University Interview scaffold; its former BMT/STEP/TMUA data is no longer used.
 - `site/dist/math.js`: escaped prose and explicit TeX rendering.
 - `site/dist/research.js`: refined BMO combinatorics keywords and official evidence.
 - `research/bmo-combinatorics.md`: research scope, conclusions, and source references.
 - `research/bmo-practice-sources.md` and `research/bmt-format-sources.md`: official sources, dates, question references, and content verification.
 - `research/content-depth-audit.md`: coverage decisions, mathematical conditions, references, and verification scope for the content revision.
+- `research/step-tmua-framework.md`: the framework fixed before authoring, official chapter mappings, boundaries and reuse decisions.
+- `research/step-tmua-verification.md`: observed validation results and limits for the admissions content addition.
 
-The BMO translation validator checks that every technique and exercise has its corresponding Chinese text. The preparation taxonomy is editorial; it is not an official exhaustive syllabus.
+Validators check bilingual teaching fields, explicit TeX, framework coverage, acyclic prerequisites, preserved category routes, original-problem provenance, single MCQ answer labels and selected independently enumerated/numerically checked results. These do not constitute formal verification of every proof. The preparation taxonomy is editorial; topic-family coverage is not an exhaustive treatment of every official syllabus bullet.
 
 ## Data storage
 
