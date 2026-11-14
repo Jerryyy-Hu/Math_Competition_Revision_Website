@@ -1,3 +1,21 @@
+# Mobile reading revision — 2026-11-14
+
+## Changes
+
+The phone layout now keeps current-topic navigation available through a sticky, collapsible outline and a Practice shortcut. A single outline list is shared between desktop and phone modes, so marked entries stay synchronized. The reading boundary includes the phone toolbar, while native details, outside clicks and Escape handle dismissal. Crossing the responsive breakpoint restores the correct outline mode.
+
+Phone text, core formulas and touch targets are larger. Practice retains a single action row, with a short visible review label and the complete screen-reader label. The collection list uses full-width cards on small phones. Long formulas keep their size, use separate scroll regions and show a scroll hint only when needed. Search uses the visual viewport to leave space above the software keyboard. The material modal becomes a safe-area-aware bottom sheet, and navigation controls remain reachable while the drawer scrolls. No teaching content, identifiers, saved materials or dependencies were changed.
+
+## Verification and limits
+
+- The existing content, strict KaTeX, study-state, knowledge/search and admissions checks passed: 63 populated topics, 300 technique placements, 154 exercises, 2563 math expression placements and unchanged source coverage.
+- The new deterministic mobile-controller checks passed. They exercise initial mobile collapse, desktop restoration, the exact half-heading threshold including toolbar occlusion, Practice identification, outside-click/link/Escape dismissal, listener cleanup, formula overflow and later disclosure, accessible scroll-region cleanup, and visual-viewport height calculations.
+- JavaScript syntax and the local preview's HTTP responses were checked. These are source and controller checks, not a browser-layout result.
+- This turn's in-app browser returned "Local browser access is unavailable for this chat". The supported native Edge capture was also unavailable because the existing window was minimized; the refreshed-window retry returned the same error. No alternative browser-control technology was used to bypass these unavailable surfaces.
+- A physical phone was not available. Current touch feel, on-screen keyboard behaviour, safe-area rendering and visual layout therefore remain unverified on hardware. Earlier browser results below apply to earlier revisions.
+
+---
+
 # Content, marking and practice revision — 2026-11-12
 
 This section supersedes the historical interaction descriptions below, including solution dialogs and topic-level review controls.

@@ -4,6 +4,7 @@ import { getMaterials, saveMaterial, readPreferences, writePreferences, exportMa
 import { createNavigation } from './navigation.js';
 import { createReadingOutline } from './reading-outline.js';
 import { problemKey, techniqueId } from './study-state.js';
+import { createMathScrollRegions, createSearchViewport } from './mobile-layout.js';
 
 const main = document.querySelector('main');
 const preferences = readPreferences();
@@ -14,8 +15,10 @@ let routeVersion = 0;
 let pageAnimation;
 let toastTimer;
 let disposeOutline = () => {};
+let disposeMath = () => {};
 const dialogVersions = new WeakMap();
 const navigation = createNavigation();
+const updateSearchViewport = createSearchViewport();
 
 preferences.saved = [...new Set(preferences.saved.map(resolveTopicKey))];
 preferences.read = [...new Set(preferences.read.map(resolveTopicKey))];
@@ -96,6 +99,7 @@ function focusSearchTarget(topic) {
 async function renderRoute({ initial = false, preserveScroll = false, instant = false } = {}) {
   const version = ++routeVersion;
   disposeOutline();
+  disposeMath();
   const parts = routeParts();
   currentTopic = null;
   pageAnimation?.cancel();
@@ -137,6 +141,7 @@ async function renderRoute({ initial = false, preserveScroll = false, instant = 
   pageAnimation?.cancel();
   if (!preserveScroll) window.scrollTo({ top: 0, behavior: 'instant' });
   disposeOutline = createReadingOutline(main);
+  disposeMath = createMathScrollRegions(main);
   if (!initial) main.focus({ preventScroll: true });
   focusSearchTarget(currentTopic);
   if (!initial && !instant) {
@@ -219,6 +224,7 @@ document.addEventListener('click', async (event) => {
     review.closest('.exercise').classList.toggle('is-reviewed', !exists);
     review.setAttribute('aria-pressed', String(!exists));
     review.querySelector('span').textContent = exists ? 'Mark as reviewed' : 'Marked as reviewed';
+    review.querySelector('.review-label-short').textContent = exists ? 'Review' : 'Reviewed';
     return;
   }
   const disclosure = event.target.closest('[data-disclosure]');
@@ -257,6 +263,7 @@ function updateSearch() {
   results.hidden = !query;
   input.setAttribute('aria-expanded', String(Boolean(query)));
   input.removeAttribute('aria-activedescendant');
+  updateSearchViewport();
   const count = results.querySelectorAll('[data-search-result]').length;
   document.querySelector('#search-status').textContent = query ? `${count} 条匹配，按关联度排序。使用上下方向键选择，Enter 打开。` : '';
 }
@@ -265,7 +272,11 @@ document.addEventListener('input', (event) => {
   if (event.target.id === 'topic-search' && !event.isComposing) updateSearch();
 });
 document.addEventListener('compositionend', (event) => { if (event.target.id === 'topic-search') updateSearch(); });
-document.addEventListener('focusin', (event) => { if (event.target.id === 'topic-search') updateSearch(); });
+document.addEventListener('focusin', (event) => {
+  if (event.target.id !== 'topic-search') return;
+  if (matchMedia('(max-width: 760px)').matches) event.target.closest('.search-field').scrollIntoView({ behavior: 'instant', block: 'start' });
+  updateSearch();
+});
 document.addEventListener('focusout', (event) => {
   if (event.target.closest('.search-field') && !event.target.closest('.search-field').contains(event.relatedTarget)) closeSearch();
 });

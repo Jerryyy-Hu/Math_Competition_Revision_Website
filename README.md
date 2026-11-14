@@ -1,5 +1,13 @@
 # Lemma
 
+## Mobile reading
+
+The phone layout provides a sticky, collapsible current-topic outline with a direct Practice shortcut. It follows the current technique and accounts for the toolbar when scrolling or determining the reading position. Opening the outline overlays the article; choosing a destination, tapping outside or pressing Escape closes it. Desktop mode retains the persistent right outline.
+
+Primary phone controls have at least 44-pixel tap targets. Practice keeps Hint, Solution and review on one row, with a compact Review/Reviewed label and its complete accessible name. Larger body text and formula sizes preserve readability; overflowing formulas receive keyboard access and a horizontal-scroll hint. Search results use the visual viewport to allow for the software keyboard, with a compact mode when little space remains. The material form uses a bottom sheet with safe-area padding and 16-pixel inputs.
+
+`node scripts/check-mobile.mjs` checks controller behaviour using deterministic DOM doubles: responsive outline modes, toolbar occlusion, dismissals, formula overflow and viewport calculations. These checks do not establish browser layout, Safari keyboard behaviour or physical-device touch feel. See the dated verification record for the current preview limitations.
+
 A mathematics study library with a collapsible competition → subject → topic index and locally vendored KaTeX.
 
 ## Scope

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A BMO, BMT, STEP and TMUA study library with locally vendored KaTeX",
   "scripts": {
-    "check": "node scripts/check-content.mjs && node scripts/check-math.mjs && node scripts/check-study-state.mjs && node scripts/check-knowledge.mjs && node scripts/check-admissions.mjs",
+    "check": "node scripts/check-content.mjs && node scripts/check-math.mjs && node scripts/check-study-state.mjs && node scripts/check-knowledge.mjs && node scripts/check-admissions.mjs && node scripts/check-mobile.mjs",
     "preview": "node scripts/serve.mjs",
     "check:browser": "node scripts/check-browser.mjs",
     "check:sources": "node scripts/check-sources.mjs",
