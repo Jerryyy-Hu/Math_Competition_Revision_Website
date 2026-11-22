@@ -6,7 +6,7 @@ import { searchKnowledge } from '../site/dist/search.js';
 const preferences = { saved: [], read: [], markedTechniques: [], reviewedProblems: [] };
 const admissions = allTopics.filter((topic) => ['tmua', 'step'].includes(topic.collection.id));
 assert.equal(admissions.length, 37);
-assert.equal(allTopics.filter((topic) => ['bmo', 'bmt'].includes(topic.collection.id)).length, 26);
+assert.equal(allTopics.filter((topic) => ['bmo', 'bmt'].includes(topic.collection.id)).length, 34);
 assert.equal(allTopics.filter((topic) => topic.scaffold).length, 7);
 assert(allTopics.filter((topic) => topic.scaffold).every((topic) => topic.collection.id === 'interview'));
 

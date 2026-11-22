@@ -581,3 +581,36 @@ input[type=file] { font-size: 11px; padding: 11px 8px; }
   .index-glyph svg { transition: opacity 100ms linear; transform: none !important; }
   button:active, .button:active { transform: none; }
 }
+
+/* Technique-led past-paper navigation and initially collapsed answer lookup. */
+.archive-guide { line-height: 1.85; max-width: 78ch; margin: 0 0 26px; }
+.archive-back { margin: 0 0 32px; }
+.archive-index, .archive-related { margin-top: 56px; }
+.archive-index > p, .archive-related > p { line-height: 1.85; }
+.archive-index h2, .archive-related h2 { font-size: 1.75rem; }
+.archive-year { border-bottom: 1px solid var(--line); }
+.archive-year > summary { min-height: 64px; cursor: pointer; padding: 16px 8px; font-size: 1rem; }
+.archive-year > summary strong { font-size: 1.4rem; margin-right: 20px; }
+.archive-year > summary span { color: var(--muted); font-size: .875rem; }
+.archive-paper-links { display: flex; flex-wrap: wrap; gap: 10px 24px; padding: 8px; font-size: .875rem; }
+.archive-paper-links a { display: inline-block; min-height: 44px; padding: 10px 0; text-decoration: underline; text-underline-offset: 3px; }
+.archive-problem-list { list-style: none; padding: 0; margin: 4px 0 24px; }
+.archive-problem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, 170px); gap: 16px; padding: 20px 8px; border-top: 1px solid var(--line); }
+.archive-question-link { display: block; min-height: 44px; padding: 9px 0; font-size: 1.05rem; line-height: 1.55; text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
+.archive-category { display: block; color: var(--muted); font-size: .875rem; line-height: 1.5; }
+.archive-answer { align-self: start; font-size: 1rem; min-width: 0; }
+.archive-answer > summary { min-height: 44px; padding: 10px 6px; cursor: pointer; }
+.archive-answer > div { padding: 8px 6px; overflow-x: auto; }
+.archive-answer > a { display: inline-block; padding: 12px 6px; font-size: .875rem; min-height: 44px; text-decoration: underline; }
+.archive-related ul { list-style: none; padding: 0; }
+.archive-related a { display: flex; flex-direction: column; gap: 6px; padding: 16px 0; border-bottom: 1px solid var(--line); font-size: 1rem; line-height: 1.6; }
+.archive-related a span { font-size: .875rem; color: var(--muted); }
+.exercise[id] { scroll-margin-top: 24px; }
+@media (max-width: 600px) {
+  .archive-problem { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .archive-answer > summary { width: max-content; min-width: 100px; }
+  .archive-year > summary strong { margin-right: 10px; }
+  .archive-paper-links { gap: 0 14px; }
+  .archive-paper-links > span { width: 100%; }
+  .archive-index .section-line { align-items: start; }
+}

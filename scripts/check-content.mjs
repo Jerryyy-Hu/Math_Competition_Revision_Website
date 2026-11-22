@@ -9,7 +9,7 @@ import { techniqueId, techniqueKey, problemKey } from '../site/dist/study-state.
 const preferences = { saved: [], read: [], markedTechniques: [], reviewedProblems: [], last: null };
 assert.equal(collections.length, 5);
 assert.equal(topicMap.size, allTopics.length, 'Topic routes must be unique.');
-assert.equal(totals.topics, 63);
+assert.equal(totals.topics, 71);
 assert(totals.exercises >= 74);
 assert.deepEqual(collections.find((collection) => collection.id === 'bmt').subjects.map((subject) => subject.name), ['Algebra', 'Calculus', 'Discrete', 'Geometry', 'Team Rounds']);
 assert.equal(resolveTopicKey('bmt/number-theory/congruences'), 'bmt/discrete/discrete-structures');
@@ -76,7 +76,7 @@ const tree = indexTree('bmo/combinatorics/counting');
 for (const topic of allTopics) assert(tree.includes(`href="#/${topic.key}"`), `Missing index destination: ${topic.key}`);
 assert(tree.includes('aria-current="page"'));
 assert.equal(escapeHtml('<script>"x"</script>'), '&lt;script&gt;&quot;x&quot;&lt;/script&gt;');
-assert(homePage(preferences).includes('63 topics'));
+assert(homePage(preferences).includes('71 topics'));
 assert(reviewPage().includes('BMO1 2024'));
 const html = readFileSync(new URL('../site/dist/index.html', import.meta.url), 'utf8');
 assert(html.includes('viewport-fit=cover'));

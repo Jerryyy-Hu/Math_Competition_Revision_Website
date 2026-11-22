@@ -84,6 +84,13 @@ function routeParts() {
 function focusSearchTarget(topic) {
   if (!topic) return;
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
+  const problem = topic.exercises.find((entry) => entry.id === params.get('problem'));
+  if (problem) {
+    const target = document.getElementById(`problem-${problem.id}`);
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ behavior: 'instant', block: 'start' });
+    return;
+  }
   const item = topic.bullets.find((entry) => techniqueId(entry) === params.get('technique'));
   if (!item) return;
   const extension = item.extensions.find((entry) => entry.id === params.get('extension'));

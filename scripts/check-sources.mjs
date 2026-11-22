@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { allTopics } from '../site/dist/library.js';
 
-const urls = [...new Set(allTopics.flatMap((topic) => topic.exercises.flatMap((problem) => problem.source ? [problem.source.url, problem.source.solutionUrl].filter(Boolean) : [])))];
+const urls = [...new Set(allTopics.flatMap((topic) => topic.exercises.flatMap((problem) => problem.source ? [problem.source.url, problem.source.solutionUrl].filter(Boolean).map((url) => url.split('#')[0]) : [])))];
 const results = [];
 for (let offset = 0; offset < urls.length; offset += 6) {
   const batch = await Promise.allSettled(urls.slice(offset, offset + 6).map(async (url) => {

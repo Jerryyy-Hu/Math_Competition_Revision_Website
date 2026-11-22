@@ -157,12 +157,28 @@ try {
   let stackedFractions = false;
   for (const width of [1440, 1024, 391, 320]) {
     await metrics(width, 900);
+    await evaluate(`location.hash='#/bmt/discrete'`);
+    await waitFor(`document.querySelectorAll('[data-archive-year]').length===6`);
+    assert.equal(await evaluate(`document.querySelectorAll('.archive-answer').length`), 75);
+    assert.equal(await evaluate(`document.querySelectorAll('.archive-answer[open]').length`), 0);
+    if ([1440, 391].includes(width)) await screenshot(`bmt-discrete-categories-${width}`);
+    await evaluate(`document.querySelectorAll('.archive-year,.archive-answer').forEach(details=>details.open=true)`);
+    assert.equal(await evaluate(`document.documentElement.scrollWidth<=document.documentElement.clientWidth+1`), true, `Archive index overflow at ${width}px`);
+    await evaluate(`document.querySelector('[data-archive-year="2025"]').scrollIntoView({behavior:'instant',block:'start'})`);
+    if ([1440, 391].includes(width)) await screenshot(`bmt-discrete-answers-${width}`);
+    await evaluate(`location.hash='#/bmt/discrete/diophantine?problem=bmt-2025-discrete-10'`);
+    await waitFor(`document.activeElement?.id==='problem-bmt-2025-discrete-10'`);
+    assert.equal(await evaluate(`document.querySelector('#problem-bmt-2025-discrete-10 .solution-content').hidden`), true);
+    await click('#problem-bmt-2025-discrete-10 [data-disclosure="hint"]');
+    await click('#problem-bmt-2025-discrete-10 [data-disclosure="solution"]');
+    assert.equal(await evaluate(`document.querySelector('#problem-bmt-2025-discrete-10 .exercise-answer').textContent`), 'Answer: 1998');
+    assert.equal(await evaluate(`document.querySelector('#problem-bmt-2025-discrete-10 .hint-content').hidden`), false);
     for (const topic of allTopics.filter((item) => !item.scaffold)) {
       await route(topic.key);
       assert.equal(await evaluate(`document.querySelectorAll('.technique-core').length===document.querySelectorAll('[data-technique-heading]').length`), true);
       assert.equal(await evaluate(`document.querySelectorAll('[data-extensions][open]').length`), 0, 'Extensions should start collapsed on normal topic routes.');
       await evaluate(`document.querySelectorAll('[data-extensions]').forEach(details=>details.open=true)`);
-      if (['tmua', 'step'].includes(topic.collection.id)) {
+      if (topic.archive || ['tmua', 'step'].includes(topic.collection.id)) {
         await evaluate(`document.querySelectorAll('[data-disclosure]').forEach(button=>{document.getElementById(button.getAttribute('aria-controls')).hidden=false;button.setAttribute('aria-expanded','true')})`);
       }
       if (topic.collection.id === 'tmua') assert.equal(await evaluate(`document.querySelectorAll('.exercise-options li').length`), 5 * topic.exercises.length);
@@ -176,6 +192,7 @@ try {
     results.push(`All ${allTopics.filter((item) => !item.scaffold).length} populated topics, including every expanded extension, render at ${width}px without page overflow; practice controls share one row.`);
   }
   assert(stackedFractions, 'The browser must contain native stacked fractions.');
+  results.push('BMT Discrete: six year disclosures, 75 initially collapsed answers, question deep links, and all expanded worked solutions pass at every viewport.');
 
   await metrics(1440);
   await route('bmo/algebra/inequalities');

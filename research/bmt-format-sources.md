@@ -2,6 +2,10 @@
 
 Verified on 2026-11-12. The website uses the official four Focus subjects (Algebra, Calculus, Discrete, Geometry), plus a library category named Team Rounds containing Guts and Power. Team Rounds and the topic subdivisions are editorial navigation, not additional official tests. Discrete includes both Combinatorics and Number Theory.
 
+## Discrete replacement on 2026-11-22
+
+The former two-topic Discrete selection below has been replaced by a complete 2020–2025 archive: 60 main questions and all 15 Discrete tiebreaker questions listed for those years. The 2024 archive does not list a Discrete tiebreaker. Ten technique-led categories contain 49 teaching techniques, with chronological primary placements, secondary-method links, independent worked solutions, native answer lookup by year and official solution-page anchors. See [the full inventory and verification scope](bmt-discrete-audit.md). The earlier Discrete rows remain historical evidence for the originally selected practice, rather than the current coverage inventory.
+
 ## Current format
 
 - [BMT 2026 event page](https://berkeley.mt/events/bmt-2026/): Focus Tests are 60 minutes and 10 questions each; a student takes two. Power is a 90-minute proof-oriented team round. Guts is 75 minutes, nine consecutive sets of three, with the current set submitted before the next is issued and a live scoreboard. In-person team size is up to six. The source also gives the in-person scoring weights.

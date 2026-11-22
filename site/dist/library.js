@@ -8,6 +8,7 @@ import { bmoPastPapers } from './bmo-past-papers.js';
 import { appendKnowledge } from './knowledge-additions.js';
 import { applyKnowledgeDepth } from './knowledge-depth.js';
 import { admissionsCollections } from './admissions-content.js';
+import { installBmtDiscrete } from './bmt-discrete.js';
 
 const [bmoCollection] = applyTechniqueDetails([applyBmoNotes(bmoCollections[0])]);
 applyBmoPresentation(bmoCollection);
@@ -21,6 +22,7 @@ for (const subject of bmoCollection.subjects) {
 export const collections = [bmoCollection, bmtCollection, ...admissionsCollections, ...additionalCollections.filter((collection) => collection.id === 'interview')];
 appendKnowledge(collections);
 applyKnowledgeDepth([bmoCollection, bmtCollection]);
+installBmtDiscrete(bmtCollection);
 export const allTopics = collections.flatMap((collection) => collection.subjects.flatMap((subject) => subject.topics.map((topic) => ({
   ...topic, collection, subject, key: `${collection.id}/${subject.id}/${topic.id}`,
 }))));
