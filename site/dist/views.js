@@ -1,7 +1,7 @@
 import { collections, allTopics, activeTopics, topicMap, totals, collectionSources, escapeHtml as e, routeFor, icons, artwork } from './library.js';
 import { methodGroups, evidence, qualifications } from './research.js';
 import { richText, displayMath } from './math.js';
-import { techniqueId, techniqueKey, problemKey } from './study-state.js';
+import { problemId, problemKey, problemReview, problemRoute, reviewStates, techniqueId, techniqueKey } from './study-state.js';
 import { searchKnowledge } from './search.js';
 
 const arrow = '<span class="card-arrow" aria-hidden="true">↗</span>';
@@ -36,15 +36,40 @@ function knowledgeFramework(collection, topics) {
     <details class="framework-map"><summary>Topic map · scope &amp; prerequisites</summary><div class="evidence-table-wrap"><table class="evidence-table"><caption class="sr-only">${e(collection.name)} topic framework and prerequisites</caption><thead><tr><th scope="col">Topic</th><th scope="col">Scope</th><th scope="col">Specification</th><th scope="col">Prerequisites</th></tr></thead><tbody>${topics.map((topic) => `<tr><td><a href="${routeFor(topic)}">${e(topic.title)}</a></td><td>${e(topic.scope)}</td><td>${e(topic.references.join('; '))}</td><td>${prerequisiteLinks(topic)}</td></tr>`).join('')}</tbody></table></div></details></section>`;
 }
 
+function homeStudyAction(preferences) {
+  const lastTopic = topicMap.get(preferences.last);
+  if (!lastTopic || lastTopic.scaffold) {
+    const topic = topicMap.get('bmo/combinatorics/counting');
+    const problem = topic.exercises.find((entry) => entry.firstStep) || topic.exercises[0];
+    return `<div class="home-resume"><a class="continue-problem" href="${problemRoute(topic.key, problem)}">
+      <span>Start with a BMO problem</span><strong>${e(problem.title)} <span aria-hidden="true">↗</span></strong>
+    </a></div>`;
+  }
+
+  const topics = [lastTopic, ...activeTopics.filter((topic) => topic !== lastTopic && topic.subject === lastTopic.subject)];
+  const unreviewed = (topic) => topic.exercises.find((problem) => !problemReview(preferences, problemKey(topic, problem)));
+  const nextTopic = topics.find(unreviewed);
+  const nextProblem = nextTopic && unreviewed(nextTopic);
+  return `<section class="home-resume" aria-label="Continue learning">
+    ${label('CONTINUE LEARNING')}
+    <a class="continue-topic" href="${routeFor(lastTopic)}">${e(lastTopic.title)} <span aria-hidden="true">↗</span></a>
+    <p class="continue-context">${e(lastTopic.collection.name)} / ${e(lastTopic.subject.name)}</p>
+    ${nextProblem ? `<a class="continue-problem" href="${problemRoute(nextTopic.key, nextProblem)}">
+      <span>Next unreviewed problem${nextTopic === lastTopic ? '' : ` · ${e(nextTopic.title)}`}</span><strong>${e(nextProblem.title)} <span aria-hidden="true">↗</span></strong>
+    </a>` : ''}
+  </section>`;
+}
+
 export function homePage(preferences) {
-  const lastTopic = topicMap.get(preferences.last) || topicMap.get('bmo/combinatorics/counting');
-  return `<section class="home-heading"><div>${label('THE PERSONAL STUDY LIBRARY')}<h1>Mathematics,<br><em>collected.</em></h1></div><div class="search-field"><label class="search-box">${icons.search}<input type="search" id="topic-search" placeholder="搜索知识点 / Find an idea" aria-label="Search topics, techniques and extensions" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-options" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search"></label><div id="search-results" class="search-results" hidden></div><span id="search-status" class="sr-only" role="status" aria-live="polite"></span></div></section>
+  return `<section class="home-heading"><div>${label('THE PERSONAL STUDY LIBRARY')}<h1>Mathematics,<br><em>collected.</em></h1></div>
+    <div class="home-study"><div class="search-field"><label class="search-box">${icons.search}<input type="search" id="topic-search" placeholder="搜题 / Title or BMO1 2006 Q3" aria-label="Search practice problems, topics, and techniques" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-options" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search"></label><div id="search-results" class="search-results" hidden><div id="search-options" role="listbox" aria-label="Search results"></div></div><span id="search-status" class="sr-only" role="status" aria-live="polite"></span></div>
+    ${homeStudyAction(preferences)}</div></section>
     <div id="collection-home"><div class="section-line">${label('YOUR COLLECTIONS')}<span class="count">${totals.topics} topics &nbsp; / &nbsp; ${totals.exercises} practice problems</span></div>
     <div class="collection-grid">${collections.map((collection, index) => {
       const topics = allTopics.filter((topic) => topic.collection.id === collection.id);
       return `<a class="collection-card ${collection.color} ${collection.scaffold ? 'scaffold' : ''}" href="#/${collection.id}"><div class="card-top"><span class="card-number">0${index + 1} / ${collection.scaffold ? 'FRAMEWORK' : 'COLLECTION'}</span>${arrow}</div><div class="card-art">${artwork(collection.symbol)}</div><div class="card-body"><h2>${e(collection.name)}</h2><p class="full-name">${e(collection.fullName)}</p><div class="card-footer"><span>${collection.subjects.length} subjects</span><span class="dot"></span><span>${topics.length} ${collection.scaffold ? 'categories' : 'topics'}</span>${!collection.scaffold ? '<span aria-hidden="true">→</span>' : ''}</div></div></a>`;
     }).join('')}</div>
-    <div class="home-bottom"><div class="study-note">${label('A NOTE ON THE NOTES')}<h3>Understand. Then prove.</h3><p lang="zh-CN">每个知识点先看直白解释与核心公式，再按需展开拓展。中文讲解与 hints，中英双语技巧名，英文题目与解析；真题附官方原卷链接。</p></div><a class="continue-link" href="${routeFor(lastTopic)}"><div class="continue-icon" aria-hidden="true">${preferences.last ? '↗' : '∑'}</div><div class="continue-text">${label(preferences.last ? 'PICK UP WHERE YOU LEFT OFF' : 'A PLACE TO BEGIN')}<h3>${e(lastTopic.title)}</h3><p>${e(lastTopic.collection.name)} &nbsp; / &nbsp; ${e(lastTopic.subject.name)}</p></div><span aria-hidden="true">↗</span></a></div></div>`;
+    <div class="study-note">${label('A NOTE ON THE NOTES')}<h3>Understand. Then prove.</h3><p lang="zh-CN">每个知识点先看直白解释与核心公式，再按需展开拓展。中文讲解与 hints，中英双语技巧名，英文题目与解析；真题附官方原卷链接。</p></div></div>`;
 }
 
 export function collectionPage(collection, preferences) {
@@ -58,11 +83,26 @@ export function collectionPage(collection, preferences) {
 
 export function subjectPage(collection, subject, preferences) {
   const topics = allTopics.filter((topic) => topic.collection.id === collection.id && topic.subject.id === subject.id);
-  return `${breadcrumbs([[collection.name, `#/${collection.id}`], [subject.name]])}<section class="page-heading"><div>${label(`${collection.name} / ${collection.scaffold ? 'FRAMEWORK' : 'SUBJECT'}`)}<h1>${e(subject.name)}</h1>${subject.description ? `<p>${e(subject.description)}</p>` : ''}</div><div class="heading-badge"><span>${topics.length}</span><small>${collection.scaffold ? 'categories' : 'topics'}</small></div></section>${subject.archive ? '<p class="archive-guide" lang="zh-CN">每类先讲知识点、识别信号、操作步骤与易错点，再列全部主分类题目。综合题通过 Related problems 交叉引用。下方可按年份直接查题或展开答案；2024 年官方档案未列出 Discrete 加赛。</p>' : ''}<div class="topic-grid">${topics.map((topic, index) => topicCard(topic, index, preferences)).join('')}</div>${subject.archive ? archiveIndex(collection, subject) : ''}${collection.id === 'bmo' && subject.id === 'combinatorics' ? `<div class="research-callout"><div><h3>A broader combinatorics toolkit</h3><p lang="zh-CN">查阅凝练关键词、适用条件与历年官方题目证据。</p></div><a class="button" href="#/bmo/review">Method map ↗</a></div>` : ''}`;
+  const firstSteps = topics.flatMap((topic) => topic.exercises.filter((problem) => problem.firstStep).map((problem) => ({ topic, problem })));
+  return `${breadcrumbs([[collection.name, `#/${collection.id}`], [subject.name]])}<section class="page-heading"><div>${label(`${collection.name} / ${collection.scaffold ? 'FRAMEWORK' : 'SUBJECT'}`)}<h1>${e(subject.name)}</h1>${subject.description ? `<p>${e(subject.description)}</p>` : ''}</div><div class="heading-badge"><span>${topics.length}</span><small>${collection.scaffold ? 'categories' : 'topics'}</small></div></section>
+    ${firstSteps.length ? `<section class="problem-section" aria-labelledby="first-step-practice"><h2 id="first-step-practice">First-step practice</h2><p lang="zh-CN">先写下题目限制了什么，再逐层打开提示，检查你的第一步。</p>${problemLinks(firstSteps)}</section>` : ''}
+    ${subject.archive ? '<p class="archive-guide" lang="zh-CN">每类先讲知识点、识别信号、操作步骤与易错点，再列全部主分类题目。综合题通过 Related problems 交叉引用。下方可按年份直接查题或展开答案；2024 年官方档案未列出 Discrete 加赛。</p>' : ''}<div class="topic-grid">${topics.map((topic, index) => topicCard(topic, index, preferences)).join('')}</div>${subject.archive ? archiveIndex(collection, subject) : ''}${collection.id === 'bmo' && subject.id === 'combinatorics' ? `<div class="research-callout"><div><h3>A broader combinatorics toolkit</h3><p lang="zh-CN">查阅凝练关键词、适用条件与历年官方题目证据。</p></div><a class="button" href="#/bmo/review">Method map ↗</a></div>` : ''}`;
+}
+
+function problemReference(problem) {
+  const source = problem.source;
+  if (source) return [source.round, source.year, source.question].filter(Boolean).join(' · ');
+  return problem.origin === 'original' ? 'Original drill' : 'Original / classical';
+}
+
+function problemLinks(entries) {
+  return `<ul class="problem-links">${entries.map(({ topic, problem }) => `<li><a href="${problemRoute(topic.key, problem)}">
+    <strong>${e(problem.title)}</strong><span>${e(topic.collection.name)} / ${e(topic.title)} · ${e(problemReference(problem))}</span>
+  </a></li>`).join('')}</ul>`;
 }
 
 function archiveProblemLink(problem) {
-  return `#/bmt/discrete/${problem.category}?problem=${encodeURIComponent(problem.id)}`;
+  return problemRoute(`bmt/discrete/${problem.category}`, problem);
 }
 
 function archiveIndex(collection, subject) {
@@ -99,18 +139,33 @@ function techniqueBlock(topic, item, preferences) {
     ${item.extensions.length ? `<details class="technique-extensions" data-extensions><summary lang="zh-CN">拓展</summary><div class="extension-list">${item.extensions.map((extension) => extensionBlock(item, extension)).join('')}</div></details>` : ''}</li>`;
 }
 
+function problemHints(problem) {
+  if (!problem.firstStep) return richText(problem.hint);
+  const { notice, setup } = problem.firstStep;
+  return `<p><strong lang="en">1 · Notice the restriction</strong>${richText(notice)}</p>
+    <details class="hint-layer"><summary lang="en">2 · Choose a method</summary><p>${richText(problem.hint)}</p>
+      <details class="hint-layer"><summary lang="en">3 · Set up the first step</summary><p>${richText(setup)}</p></details>
+    </details>`;
+}
+
 function exerciseBlock(topic, problem, index, preferences) {
   const key = problemKey(topic, problem);
-  const reviewed = preferences.reviewedProblems?.includes(key) || false;
+  const state = problemReview(preferences, key);
+  const review = reviewStates[state];
   const source = problem.source;
-  const sourceName = source ? [source.competition, source.year, source.round, source.question].filter(Boolean).join(' · ') : problem.origin === 'original' ? 'Original drill' : 'Original / classical';
-  return `<article class="exercise ${reviewed ? 'is-reviewed' : ''}" id="problem-${e(problem.id || index)}" tabindex="-1" data-problem-key="${e(key)}">
+  const sourceName = source ? [source.competition, source.year, source.round, source.question].filter(Boolean).join(' · ') : problemReference(problem);
+  return `<article class="exercise ${state ? 'is-reviewed' : ''}" id="problem-${e(problemId(problem))}" tabindex="-1" data-problem-key="${e(key)}">
     <div class="exercise-meta"><div class="exercise-origin"><span>PROBLEM ${String(index + 1).padStart(2, '0')}</span>${source ? `<a href="${e(source.url)}" target="_blank" rel="noopener noreferrer">${e(sourceName)} ↗</a>` : `<span>${sourceName}</span>`}${problem.scope ? `<span>${e(problem.scope)}</span>` : ''}</div><span>${source?.restated ? 'RESTATED · ' : ''}${problem.format ? e(problem.format) : problem.proof ? 'PROOF' : 'SHORT ANSWER'}</span></div>
     <h3>${e(problem.title)}</h3><div class="question" lang="en">${richText(problem.question)}</div>
     ${problem.choices ? `<ol type="A" class="exercise-options" aria-label="Answer choices" lang="en">${problem.choices.map((choice) => `<li>${richText(choice)}</li>`).join('')}</ol>` : ''}
+    ${problem.firstStep ? `<p class="exercise-first-step"><strong>First step</strong> ${richText(problem.firstStep.prompt)}</p>` : ''}
     <div class="exercise-buttons"><button id="hint-button-${index}" class="button hint-button" data-disclosure="hint" aria-expanded="false" aria-controls="hint-${index}">${icons.hint}Hint</button><button id="solution-button-${index}" class="button solution-button" data-disclosure="solution" aria-expanded="false" aria-controls="solution-${index}">Solution <span aria-hidden="true">↓</span></button>
-    <button class="button review-button ${reviewed ? 'is-reviewed' : ''}" data-review-problem="${e(key)}" aria-pressed="${reviewed}">${icons.check}<span class="review-label">${reviewed ? 'Marked as reviewed' : 'Mark as reviewed'}</span><span class="review-label-short" aria-hidden="true">${reviewed ? 'Reviewed' : 'Review'}</span></button></div>
-    <div class="hint-content" id="hint-${index}" role="region" aria-labelledby="hint-button-${index}" lang="zh-CN" hidden>${richText(problem.hint)}</div>
+    <button class="button review-button ${state ? 'is-reviewed' : ''}" data-disclosure="review" aria-expanded="false" aria-controls="review-${index}">${icons.check}<span class="review-label">${review.button}</span><span class="review-label-short" aria-hidden="true">${review.short}</span></button></div>
+    <div class="review-content" id="review-${index}" hidden>
+      <label class="review-choice"><span>Review status</span><select data-review-problem="${e(key)}">${Object.entries(reviewStates).map(([value, choice]) => `<option value="${value}"${state === value ? ' selected' : ''}>${choice.label}</option>`).join('')}</select></label>
+      <label class="revisit-choice"><input type="checkbox" data-revisit-problem="${e(key)}"${preferences.revisitProblems?.includes(key) ? ' checked' : ''}> Revisit in Saved</label>
+    </div>
+    <div class="hint-content" id="hint-${index}" role="region" aria-labelledby="hint-button-${index}" lang="zh-CN" hidden>${problemHints(problem)}</div>
     <div class="solution-content" id="solution-${index}" role="region" aria-labelledby="solution-button-${index}" lang="en" hidden>${problem.answer ? `<p class="exercise-answer">Answer: ${richText(problem.answer)}</p>` : ''}<ol class="solution-steps">${problem.solution.map((step) => `<li>${richText(step)}</li>`).join('')}</ol>${source?.solutionUrl ? `<a class="official-solution" href="${e(source.solutionUrl)}" target="_blank" rel="noopener noreferrer">Official solution · ${source.solutionPage ? `PDF page ${source.solutionPage}` : 'PDF'} ↗</a>` : ''}${problem.proof ? '<div class="solution-end" aria-label="End of proof">□</div>' : ''}</div></article>`;
 }
 
@@ -140,7 +195,13 @@ export function topicPage(topic, preferences, materials) {
 
 export function savedPage(preferences) {
   const topics = allTopics.filter((topic) => preferences.saved.includes(topic.key));
-  return `${breadcrumbs([['Saved']])}<section class="page-heading"><div>${label('YOUR READING LIST')}<h1>Saved ideas.</h1><p lang="zh-CN">把想回顾的知识点留在这里。</p></div><div class="heading-badge"><span>${topics.length}</span><small>saved</small></div></section>${topics.length ? `<div class="topic-grid">${topics.map((topic, index) => topicCard(topic, index, preferences)).join('')}</div>` : '<div class="empty-state"><span class="empty-symbol" aria-hidden="true">⌑</span><h2>Keep an idea close.</h2><p lang="zh-CN">打开任意知识点，点击 Save topic 即可收藏。</p><a class="button" href="#/bmo">Explore BMO ↗</a></div>'}`;
+  const revisitKeys = new Set(preferences.revisitProblems || []);
+  const problems = activeTopics.flatMap((topic) => topic.exercises.filter((problem) => revisitKeys.has(problemKey(topic, problem))).map((problem) => ({ topic, problem })));
+  return `${breadcrumbs([['Saved']])}<section class="page-heading"><div>${label('YOUR READING LIST')}<h1>Saved ideas.</h1><p lang="zh-CN">在这里继续学习收藏的专题、重做标记过的题目。</p></div><div class="heading-badge"><span>${topics.length + problems.length}</span><small>saved</small></div></section>
+    <section class="problem-section" aria-labelledby="revisit-title"><h2 id="revisit-title">Problems to revisit</h2>
+      ${problems.length ? problemLinks(problems) : '<p lang="zh-CN">想重做一道题时，打开 Review 并勾选 Revisit in Saved。</p>'}
+    </section>
+    ${topics.length ? `<section class="saved-topics"><h2>Saved topics</h2><div class="topic-grid">${topics.map((topic, index) => topicCard(topic, index, preferences)).join('')}</div></section>` : '<div class="empty-state"><span class="empty-symbol" aria-hidden="true">⌑</span><h2>Keep an idea close.</h2><p lang="zh-CN">打开任意知识点，点击 Save topic 即可收藏。</p><a class="button" href="#/bmo">Explore BMO ↗</a></div>'}`;
 }
 
 export function materialRows(materials) {
@@ -170,6 +231,16 @@ export function indexTree(route) {
 
 export function searchResults(query, preferences) {
   const { total, results } = searchKnowledge(query, Infinity);
-  if (!results.length) return '<div id="search-options" role="listbox" aria-label="Matching knowledge"></div><p class="search-empty" lang="zh-CN">没有匹配内容。试试「因子和」「Sophie Germain」「权方和」等关键词。</p>';
-  return `<p class="search-count" lang="zh-CN">${total} 条匹配 · 按关联度排序</p><div id="search-options" class="search-options" role="listbox" aria-label="Matching knowledge">${results.map((result, index) => `<a class="search-result" id="search-option-${index}" role="option" aria-selected="false" href="${e(result.href)}" data-search-result tabindex="-1"><span class="search-result-top"><span class="competition-tag ${e(result.topic.collection.color)}">${e(result.topic.collection.name)}</span><span class="search-result-subject">${e(result.topic.subject.name)}${result.extension ? ' · 拓展' : ''}</span>${preferences.saved?.includes(result.topic.key) ? `<span class="search-saved" aria-label="Saved topic">${icons.bookmark}</span>` : ''}</span><strong>${e(result.title)}</strong>${result.term ? `<span class="search-term" lang="en">${e(result.term)}</span>` : ''}<span class="search-context">${e(result.topic.title)}${result.extension ? ` / ${e(result.item.nameZh)}` : ''}</span><span class="search-snippet" lang="zh-CN">${richText(result.summary)}</span></a>`).join('')}</div><p class="search-help" lang="zh-CN">↑ ↓ 选择 · Enter 打开 · Esc 收起</p>`;
+  if (!results.length) return '<div id="search-options" role="listbox" aria-label="Search results"></div><p class="search-empty" lang="zh-CN">没有匹配内容。可试试题名、BMO1 2006 Q3 或「因式分解」。</p>';
+  const options = results.map((result, index) => {
+    const { problem, topic, extension } = result;
+    const term = problem ? problemReference(problem) : result.term;
+    return `<a class="search-result" id="search-option-${index}" role="option" aria-selected="false" href="${e(result.href)}" data-search-result tabindex="-1">
+      <span class="search-result-top"><span class="competition-tag ${e(topic.collection.color)}">${e(topic.collection.name)}</span><span class="search-result-subject">${e(topic.subject.name)}${problem ? ' · Practice problem' : ''}${extension ? ' · 拓展' : ''}</span>${preferences.saved?.includes(topic.key) ? `<span class="search-saved" aria-label="Saved topic">${icons.bookmark}</span>` : ''}</span>
+      <strong>${e(result.title)}</strong>${term ? `<span class="search-term" lang="en">${e(term)}</span>` : ''}
+      <span class="search-context">${e(topic.title)}${extension ? ` / ${e(result.item.nameZh)}` : ''}</span>
+      ${problem ? '' : `<span class="search-snippet" lang="zh-CN">${richText(result.summary)}</span>`}
+    </a>`;
+  }).join('');
+  return `<p class="search-count" lang="zh-CN">${total} 条匹配 · 按关联度排序</p><div id="search-options" class="search-options" role="listbox" aria-label="Search results">${options}</div><p class="search-help" lang="zh-CN">↑ ↓ 选择 · Enter 打开 · Esc 收起</p>`;
 }

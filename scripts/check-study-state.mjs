@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readingHeadingIndex, techniqueId, techniqueKey, problemKey } from '../site/dist/study-state.js';
+import { problemKey, problemReview, problemRoute, readingHeadingIndex, setProblemReview, techniqueId, techniqueKey } from '../site/dist/study-state.js';
 import { readPreferences, writePreferences } from '../site/dist/storage.js';
 
 const rect = (top, height = 40) => ({ top, bottom: top + height });
@@ -17,6 +17,7 @@ const technique = { name: 'Degrees & the handshake lemma' };
 assert.equal(techniqueId(technique), 'technique-degrees-the-handshake-lemma');
 assert.equal(techniqueKey(topic, technique), 'bmo/combinatorics/graphs::degrees-the-handshake-lemma');
 assert.equal(problemKey(topic, { id: 'bmo1-2003-q3', title: 'A different display title' }), 'bmo/combinatorics/graphs::bmo1-2003-q3');
+assert.equal(problemRoute(topic.key, { title: 'A graph problem' }), '#/bmo/combinatorics/graphs?problem=a-graph-problem');
 
 let stored = '{}';
 globalThis.localStorage = {
@@ -26,15 +27,32 @@ globalThis.localStorage = {
 const initial = readPreferences();
 assert.deepEqual(initial.markedTechniques, []);
 assert.deepEqual(initial.reviewedProblems, []);
+assert.deepEqual(initial.revisitProblems, []);
 initial.markedTechniques = [techniqueKey(topic, technique)];
-initial.reviewedProblems = [problemKey(topic, { title: 'A graph problem' })];
+const legacyKey = problemKey(topic, { title: 'A graph problem' });
+const newKey = problemKey(topic, { id: 'bmo1-2003-q3' });
+initial.reviewedProblems = [legacyKey];
 initial.reviewVersion = 1;
 writePreferences(initial);
 assert.deepEqual(readPreferences(), initial, 'Marks and per-problem reviews survive a storage round trip.');
+assert.equal(problemReview(readPreferences(), legacyKey), 'reviewed', 'An older review has no inferred solve outcome.');
+assert.deepEqual(readPreferences().problemOutcomes, {});
+initial.revisitProblems = [newKey];
+for (const outcome of ['independent', 'with-hint']) {
+  setProblemReview(initial, newKey, outcome);
+  writePreferences(initial);
+  assert.equal(problemReview(readPreferences(), newKey), outcome);
+  assert.deepEqual(readPreferences().reviewedProblems, [legacyKey, newKey]);
+}
+setProblemReview(initial, newKey, '');
+writePreferences(initial);
+assert.equal(problemReview(readPreferences(), newKey), '');
+assert.deepEqual(readPreferences().reviewedProblems, [legacyKey]);
+assert.deepEqual(readPreferences().revisitProblems, [newKey], 'Revisit flags are independent of solve outcomes.');
 stored = '{"saved":["bmo",7,"bmo"],"markedTechniques":[null,"x","x"],"reviewedProblems":null}';
 assert.deepEqual(readPreferences().saved, ['bmo']);
 assert.deepEqual(readPreferences().markedTechniques, ['x']);
 assert.deepEqual(readPreferences().reviewedProblems, []);
 stored = '{invalid';
 assert.deepEqual(readPreferences().markedTechniques, []);
-console.log('Reading outline thresholds, stable identifiers, and preference persistence passed.');
+console.log('Reading outline thresholds, stable problem links, legacy reviews, solve outcomes, and revisit persistence passed.');

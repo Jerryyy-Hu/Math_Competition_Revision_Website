@@ -3,7 +3,7 @@ import * as views from './views.js';
 import { getMaterials, saveMaterial, readPreferences, writePreferences, exportMaterials, importMaterials } from './storage.js';
 import { createNavigation } from './navigation.js';
 import { createReadingOutline } from './reading-outline.js';
-import { problemKey, techniqueId } from './study-state.js';
+import { problemId, problemKey, reviewStates, setProblemReview, techniqueId } from './study-state.js';
 import { createMathScrollRegions, createSearchViewport } from './mobile-layout.js';
 
 const main = document.querySelector('main');
@@ -24,10 +24,11 @@ preferences.saved = [...new Set(preferences.saved.map(resolveTopicKey))];
 preferences.read = [...new Set(preferences.read.map(resolveTopicKey))];
 if (preferences.last) preferences.last = resolveTopicKey(preferences.last);
 if (!preferences.reviewVersion) {
-  preferences.reviewedProblems = preferences.read.flatMap((key) => {
+  const legacyReviews = preferences.read.flatMap((key) => {
     const topic = topicMap.get(key);
     return topic ? topic.exercises.filter((problem) => !problem.source).map((problem) => problemKey(topic, problem)) : [];
   });
+  preferences.reviewedProblems = [...new Set([...preferences.reviewedProblems, ...legacyReviews])];
   preferences.read = preferences.read.filter((key) => {
     const topic = topicMap.get(key);
     return topic?.exercises.every((problem) => preferences.reviewedProblems.includes(problemKey(topic, problem)));
@@ -46,7 +47,8 @@ function toast(message) {
 function persistPreferences() {
   try { writePreferences(preferences); }
   catch { toast('浏览器未能保存状态；本次会话仍可继续使用。'); }
-  document.querySelector('#saved-count').textContent = preferences.saved.length ? String(preferences.saved.length) : '';
+  const savedCount = preferences.saved.length + preferences.revisitProblems.length;
+  document.querySelector('#saved-count').textContent = savedCount ? String(savedCount) : '';
 }
 
 function openDialog(id, instant = false) {
@@ -81,12 +83,13 @@ function routeParts() {
   return resolveTopicKey(route).split('/').filter(Boolean);
 }
 
-function focusSearchTarget(topic) {
+function focusRouteTarget(topic) {
   if (!topic) return;
   const params = new URLSearchParams(location.hash.split('?')[1] || '');
-  const problem = topic.exercises.find((entry) => entry.id === params.get('problem'));
+  const problem = topic.exercises.find((entry) => problemId(entry) === params.get('problem'));
   if (problem) {
-    const target = document.getElementById(`problem-${problem.id}`);
+    const target = document.getElementById(`problem-${problemId(problem)}`);
+    target?.classList.add('is-search-target');
     target?.focus({ preventScroll: true });
     target?.scrollIntoView({ behavior: 'instant', block: 'start' });
     return;
@@ -150,7 +153,7 @@ async function renderRoute({ initial = false, preserveScroll = false, instant = 
   disposeOutline = createReadingOutline(main);
   disposeMath = createMathScrollRegions(main);
   if (!initial) main.focus({ preventScroll: true });
-  focusSearchTarget(currentTopic);
+  focusRouteTarget(currentTopic);
   if (!initial && !instant) {
     pageAnimation = main.animate(reduceMotion.matches ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(5px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: reduceMotion.matches ? 100 : 180, easing: 'cubic-bezier(.23,1,.32,1)' });
   }
@@ -218,22 +221,6 @@ document.addEventListener('click', async (event) => {
     });
     return;
   }
-  const review = event.target.closest('[data-review-problem]');
-  if (review && currentTopic) {
-    const key = review.dataset.reviewProblem;
-    const exists = preferences.reviewedProblems.includes(key);
-    preferences.reviewedProblems = exists ? preferences.reviewedProblems.filter((item) => item !== key) : [...preferences.reviewedProblems, key];
-    const allReviewed = currentTopic.exercises.every((problem) => preferences.reviewedProblems.includes(problemKey(currentTopic, problem)));
-    preferences.read = preferences.read.filter((item) => item !== currentTopic.key);
-    if (allReviewed) preferences.read.push(currentTopic.key);
-    persistPreferences();
-    review.classList.toggle('is-reviewed', !exists);
-    review.closest('.exercise').classList.toggle('is-reviewed', !exists);
-    review.setAttribute('aria-pressed', String(!exists));
-    review.querySelector('span').textContent = exists ? 'Mark as reviewed' : 'Marked as reviewed';
-    review.querySelector('.review-label-short').textContent = exists ? 'Review' : 'Reviewed';
-    return;
-  }
   const disclosure = event.target.closest('[data-disclosure]');
   if (disclosure) {
     const content = document.getElementById(disclosure.getAttribute('aria-controls'));
@@ -266,7 +253,7 @@ function updateSearch() {
   if (!input) return;
   const query = input.value.trim();
   const results = document.querySelector('#search-results');
-  results.innerHTML = query ? views.searchResults(query, preferences) : '<div id="search-options" role="listbox" aria-label="Matching knowledge"></div>';
+  results.innerHTML = query ? views.searchResults(query, preferences) : '<div id="search-options" role="listbox" aria-label="Search results"></div>';
   results.hidden = !query;
   input.setAttribute('aria-expanded', String(Boolean(query)));
   input.removeAttribute('aria-activedescendant');
@@ -310,6 +297,33 @@ document.addEventListener('keydown', (event) => {
 });
 
 document.addEventListener('change', (event) => {
+  const { target } = event;
+  if (currentTopic && target.matches('[data-review-problem]')) {
+    const state = target.value;
+    setProblemReview(preferences, target.dataset.reviewProblem, state);
+    const allReviewed = currentTopic.exercises.every((problem) => preferences.reviewedProblems.includes(problemKey(currentTopic, problem)));
+    preferences.read = preferences.read.filter((item) => item !== currentTopic.key);
+    if (allReviewed) preferences.read.push(currentTopic.key);
+    persistPreferences();
+
+    const exercise = target.closest('.exercise');
+    const button = exercise.querySelector('.review-button');
+    exercise.classList.toggle('is-reviewed', Boolean(state));
+    button.classList.toggle('is-reviewed', Boolean(state));
+    button.querySelector('.review-label').textContent = reviewStates[state].button;
+    button.querySelector('.review-label-short').textContent = reviewStates[state].short;
+    return;
+  }
+  if (currentTopic && target.matches('[data-revisit-problem]')) {
+    const key = target.dataset.revisitProblem;
+    const revisit = new Set(preferences.revisitProblems);
+    if (target.checked) revisit.add(key);
+    else revisit.delete(key);
+    preferences.revisitProblems = [...revisit];
+    persistPreferences();
+    toast(target.checked ? '已加入 Saved 的待复习列表' : '已从待复习列表移除');
+    return;
+  }
   if (event.target.id === 'material-filter') {
     const records = materialCache.filter((item) => !event.target.value || item.collection === event.target.value);
     document.querySelector('#material-list').innerHTML = records.length ? views.materialRows(records) : '<div class="empty-state"><h2>No materials here yet.</h2><p lang="zh-CN">可以更换分类，或添加第一份资料。</p></div>';

@@ -91,5 +91,15 @@ const markedHtml = topicPage(sample, marked, []);
 assert(markedHtml.includes('technique is-marked'));
 assert(markedHtml.includes('aria-label="Marked" >'));
 assert(markedHtml.includes('Marked as reviewed'));
+const combinatorics = collections.find((collection) => collection.id === 'bmo').subjects.find((subject) => subject.id === 'combinatorics');
+const firstSteps = combinatorics.topics.flatMap((topic) => topic.exercises.filter((problem) => problem.firstStep));
+assert.equal(firstSteps.length, 4);
+assert(firstSteps.some((problem) => problem.id === 'bmo1-2006-q3'));
+const combinatoricsHtml = subjectPage(collections[0], combinatorics, preferences);
+for (const problem of firstSteps) {
+  assert(problem.source?.url && combinatoricsHtml.includes(`?problem=${problem.id}`));
+  assert(problem.firstStep.prompt && !hasChinese(problem.firstStep.prompt));
+  assert(hasChinese(problem.firstStep.notice) && hasChinese(problem.firstStep.setup));
+}
 const official = allTopics.flatMap((topic) => topic.exercises.filter((problem) => problem.source));
 console.log(JSON.stringify({ collections: collections.length, populatedTopics: totals.topics, expandedTechniques: allTopics.reduce((sum, topic) => sum + topic.bullets.length, 0), exercises: totals.exercises, officialPracticeAssignments: official.length, uniqueOfficialProblems: new Set(official.map((problem) => problem.id)).size, categoryOnlyTopics: allTopics.length - totals.topics, checks: 'passed' }, null, 2));

@@ -60,5 +60,18 @@ assert.equal(normaliseSearch('  Hölder — Cauchy–Schwarz  '), 'holder cauchy
 assert.deepEqual(searchKnowledge('   '), { total: 0, results: [] });
 assert.equal(searchKnowledge('zzzzzz-no-such-mathematics').total, 0);
 assert(!searchResults('<img src=x onerror=alert(1)>', preferences).includes('<img'));
+const digitOrderRoute = '#/bmo/combinatorics/counting?problem=bmo1-2006-q3';
+for (const query of ['One prescribed digit order', 'BMO · 2006 · BMO1 · Q3', 'BMO 1 2006 Question 3', '2006 #3']) {
+  const [result] = searchKnowledge(query).results;
+  assert.equal(result.href, digitOrderRoute, query);
+  assert.equal(result.problem.source.question, 'Q3');
+  assert(searchResults(query, preferences).includes(result.topic.title));
+}
+const [original] = searchKnowledge('Choose a chairperson').results;
+assert.equal(original.href, '#/bmo/combinatorics/counting?problem=choose-a-chairperson');
+const [power] = searchKnowledge('BMT Power Q1.8').results;
+assert.equal(power.problem.source.question, 'Q1.8');
+const discrete = searchKnowledge('BMT 2025 Discrete Q1', Infinity).results.filter((result) => result.problem);
+assert(discrete.length && discrete.every((result) => result.problem.source.question === 'Q1'), 'Q1 must not match Q10.');
 assert.equal(totals.topics, 71, 'The eight additional BMT Discrete categories and all previous non-Discrete chapters must be available.');
 console.log(JSON.stringify({ techniques: techniques.length, techniquesWithExtensions: techniques.filter((item) => item.extensions.length).length, extensions: techniques.flatMap((item) => item.extensions).length, keywordAndRankingScenarios: scenarios.length, checks: 'passed' }, null, 2));

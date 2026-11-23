@@ -1,4 +1,6 @@
 /** Browser-local records. No user file is uploaded to the hosted site. */
+import { isSolvedOutcome } from './study-state.js';
+
 const DATABASE = 'lemma-library-v1';
 let database;
 
@@ -32,9 +34,15 @@ export function readPreferences() {
   try {
     const value = JSON.parse(localStorage.getItem('lemma-preferences-v1') || '{}');
     const strings = (items) => Array.isArray(items) ? [...new Set(items.filter((item) => typeof item === 'string'))] : [];
-    return { saved: strings(value.saved), read: strings(value.read), markedTechniques: strings(value.markedTechniques), reviewedProblems: strings(value.reviewedProblems), reviewVersion: value.reviewVersion === 1 ? 1 : 0, last: typeof value.last === 'string' ? value.last : null };
+    const problemOutcomes = Object.fromEntries(Object.entries(value.problemOutcomes || {}).filter(([, outcome]) => isSolvedOutcome(outcome)));
+    return {
+      saved: strings(value.saved), read: strings(value.read), markedTechniques: strings(value.markedTechniques),
+      reviewedProblems: [...new Set([...strings(value.reviewedProblems), ...Object.keys(problemOutcomes)])],
+      problemOutcomes, revisitProblems: strings(value.revisitProblems),
+      reviewVersion: value.reviewVersion === 1 ? 1 : 0, last: typeof value.last === 'string' ? value.last : null,
+    };
   } catch {
-    return { saved: [], read: [], markedTechniques: [], reviewedProblems: [], reviewVersion: 0, last: null };
+    return { saved: [], read: [], markedTechniques: [], reviewedProblems: [], problemOutcomes: {}, revisitProblems: [], reviewVersion: 0, last: null };
   }
 }
 

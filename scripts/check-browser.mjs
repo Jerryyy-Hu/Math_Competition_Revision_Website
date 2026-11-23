@@ -60,6 +60,115 @@ async function route(key) {
   await waitFor(`document.querySelector('[data-save]')?.dataset.save===${JSON.stringify(resolveTopicKey(key))}`);
 }
 
+const home = async () => {
+  await evaluate(`location.hash='#/'`);
+  await waitFor(`document.querySelector('#topic-search')`);
+};
+const search = (query) => evaluate(`{const input=document.querySelector('#topic-search');input.focus();input.value=${JSON.stringify(query)};input.dispatchEvent(new InputEvent('input',{bubbles:true}))}`);
+const setReview = (selector, state) => evaluate(`{
+  const select=document.querySelector(${JSON.stringify(`${selector} [data-review-problem]`)});
+  select.value=${JSON.stringify(state)};select.dispatchEvent(new Event('change',{bubbles:true}));
+}`);
+
+async function reloadWhen(condition) {
+  const previousNavigation = await evaluate('performance.timeOrigin');
+  await send('Page.reload');
+  await waitFor(`performance.timeOrigin!==${previousNavigation} && (${condition})`);
+}
+
+async function tap(selector) {
+  const point = await evaluate(`{const box=document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();({x:box.x+box.width/2,y:box.y+box.height/2})}`);
+  await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+  await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
+
+async function checkStudyFlow() {
+  const topic = 'bmo/combinatorics/counting';
+  const digit = '#problem-bmo1-2006-q3';
+  const hash = `#/${topic}?problem=bmo1-2006-q3`;
+  const reviewValue = `document.querySelector('${digit} [data-review-problem]')?.value`;
+  const savedLink = '[data-header-link="saved"]';
+  await send('Page.navigate', { url: `${base}#/` });
+  await waitFor(`document.querySelector('.home-study .continue-problem')`);
+  assert.equal(await evaluate(`document.querySelector('.continue-problem').getAttribute('href')`), hash);
+  assert.match(await evaluate(`document.querySelector('.continue-problem').textContent`), /Start with a BMO problem/);
+
+  const legacyPreferences = { saved: [topic], read: [], markedTechniques: [], reviewedProblems: [`${topic}::bmo1-2006-q3`], reviewVersion: 1, last: topic };
+  await evaluate(`(async()=>{
+    localStorage.setItem('lemma-preferences-v1', ${JSON.stringify(JSON.stringify(legacyPreferences))});
+    const {saveMaterial}=await import(new URL('storage.js', location.href));
+    await saveMaterial({id:'legacy-note',title:'Legacy BMO note',note:'Keep the original note.',collection:'bmo',topic:${JSON.stringify(topic)},url:'',file:null,createdAt:'2026-11-20T00:00:00Z'});
+  })()`);
+  await reloadWhen(`document.querySelector('.home-study .continue-topic')`);
+  assert.equal(await evaluate(`document.querySelector('.continue-topic').getAttribute('href')`), `#/${topic}`);
+  assert.equal(await evaluate(`document.querySelector('.continue-problem').getAttribute('href')`), `#/${topic}?problem=bmo1-2009-q3`);
+
+  const title = 'One prescribed digit order';
+  let reference = '';
+  for (const width of [1440, 391]) {
+    await metrics(width, 900);
+    await send('Emulation.setTouchEmulationEnabled', { enabled: width === 391 });
+    for (const query of [title, reference || 'BMO · 2006 · BMO1 · Q3']) {
+      await home();
+      await search(query);
+      assert.equal(await evaluate(`document.querySelector('[data-search-result] strong')?.textContent`), title);
+      assert.equal(await evaluate(`document.querySelector('[data-search-result]').getAttribute('href')`), hash);
+      assert.equal(await evaluate(`document.querySelector('[data-search-result] .search-context').textContent`), 'Counting principles');
+      if (query !== title) await screenshot(`study-flow-search-${width}`);
+      if (width === 391) await tap('[data-search-result]');
+      else {
+        await pressKey('ArrowDown', 'ArrowDown', 40);
+        await pressKey('Enter', 'Enter', 13);
+      }
+      await waitFor(`location.hash===${JSON.stringify(hash)} && document.activeElement?.id==='problem-bmo1-2006-q3'`);
+      reference = await evaluate(`document.querySelector('${digit} .exercise-origin a').textContent.replace(' ↗','')`);
+      assert.equal(reference, 'BMO · 2006 · BMO1 · Q3');
+      assert.equal(await evaluate(reviewValue), 'reviewed');
+      assert.match(await evaluate(`document.querySelector('${digit} .review-label').textContent`), /Marked as reviewed/);
+    }
+    await click(`${digit} .hint-button`);
+    const notice = `${digit} .hint-content > p`;
+    const method = `${digit} .hint-content > details`;
+    const setup = `${method} > details`;
+    assert.equal(await evaluate(`document.querySelector('${notice}').checkVisibility() && !document.querySelector('${method}').open`), true);
+    await click(`${method} > summary`);
+    assert.equal(await evaluate(`document.querySelector('${method}').open && !document.querySelector('${setup}').open`), true);
+    await click(`${setup} > summary`);
+    assert.equal(await evaluate(`document.querySelector('${setup}').open && document.querySelector('${setup} p').checkVisibility() && document.querySelector('${digit} .solution-content').hidden`), true);
+    assert.match(await evaluate(`document.querySelector('${setup} p').textContent`), /固定五个指定数字占据的五个位置/);
+    await evaluate(`document.querySelector('${digit} .hint-content').scrollIntoView({behavior:'instant',block:'center'})`);
+    await screenshot(`study-flow-hints-${width}`);
+  }
+  results.push(`At 1440px and 391px, the problem title and source reference (${reference}) both open the Counting principles problem. Three hint layers reveal the restriction, method, and setup with Solution still closed.`);
+
+  await click(`${digit} .review-button`);
+  await setReview(digit, 'independent');
+  await reloadWhen(`${reviewValue}==='independent'`);
+  await click(`${digit} .review-button`);
+  await setReview(digit, 'with-hint');
+  await click(`${digit} [data-revisit-problem]`);
+  await reloadWhen(`${reviewValue}==='with-hint' && document.querySelector('${digit} [data-revisit-problem]').checked`);
+  assert.equal(await evaluate(`document.querySelector(${JSON.stringify(savedLink)}).getBoundingClientRect().height>=44`), true);
+  await tap(savedLink);
+  await waitFor(`document.querySelector('#revisit-title')`);
+  assert.equal(await evaluate(`document.querySelector('.problem-links a').getAttribute('href')`), hash);
+  assert.equal(await evaluate(`document.querySelector('.saved-topics .topic-card').getAttribute('href')`), `#/${topic}`);
+  await screenshot('study-flow-saved-391');
+  await tap('.problem-links a');
+  await waitFor(`document.activeElement?.id==='problem-bmo1-2006-q3'`);
+  assert.equal(await evaluate(reviewValue), 'with-hint');
+  await click(`${digit} .review-button`);
+  await click(`${digit} [data-revisit-problem]`);
+  await tap(savedLink);
+  await waitFor(`document.querySelector('#revisit-title')`);
+  assert.equal(await evaluate(`document.querySelector('.problem-links a')`), null);
+  assert(await evaluate(`Boolean(document.querySelector('.saved-topics .topic-card'))`));
+  await evaluate(`location.hash='#/materials'`);
+  await waitFor(`document.querySelector('#material-list h3')?.textContent==='Legacy BMO note'`);
+  await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+  results.push('The home first action and next unreviewed problem work. A seeded legacy review stays Reviewed; both explicit solve outcomes persist after reload. On the narrow viewport, Saved opens, revisits, and removes a problem while retaining the previous topic bookmark and IndexedDB material.');
+}
+
 try {
   let port;
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -90,6 +199,8 @@ try {
   await send('Page.enable');
   await send('Runtime.enable');
   await metrics(1440);
+  await checkStudyFlow();
+  await metrics(1440);
   await send('Page.navigate', { url: `${base}#/bmo/combinatorics/graphs` });
   await waitFor(`document.querySelectorAll('[data-technique-heading]').length>0`);
   await sleep(200);
@@ -118,15 +229,16 @@ try {
   await click('.hint-button');
   await click('.solution-button');
   await click('.review-button');
+  await setReview('.exercise', 'reviewed');
   assert.equal(await evaluate(`!document.querySelector('.hint-content').hidden && !document.querySelector('.solution-content').hidden && !document.querySelector('dialog:modal')`), true);
   assert.equal(await evaluate(`getComputedStyle(document.querySelector('.hint-content')).backgroundColor!==getComputedStyle(document.querySelector('.solution-content')).backgroundColor`), true);
-  assert.equal(await evaluate(`document.querySelector('.review-button').getAttribute('aria-pressed')`), 'true');
+  assert.equal(await evaluate(`document.querySelector('[data-review-problem]').value`), 'reviewed');
   assert(await evaluate(`document.querySelectorAll('math').length>0`));
   await evaluate(`document.querySelector('#practice').scrollIntoView({behavior:'instant'})`);
   await sleep(250);
   await screenshot('revision-practice');
   await send('Page.reload');
-  await waitFor(`document.querySelector('.review-button')?.getAttribute('aria-pressed')==='true'`);
+  await waitFor(`document.querySelector('[data-review-problem]')?.value==='reviewed'`);
   results.push('Hint and Solution expand inline with distinct colours; individual review status persists.');
 
   await evaluate(`window.scrollTo({top:0,behavior:'instant'})`);
@@ -179,7 +291,7 @@ try {
       assert.equal(await evaluate(`document.querySelectorAll('[data-extensions][open]').length`), 0, 'Extensions should start collapsed on normal topic routes.');
       await evaluate(`document.querySelectorAll('[data-extensions]').forEach(details=>details.open=true)`);
       if (topic.archive || ['tmua', 'step'].includes(topic.collection.id)) {
-        await evaluate(`document.querySelectorAll('[data-disclosure]').forEach(button=>{document.getElementById(button.getAttribute('aria-controls')).hidden=false;button.setAttribute('aria-expanded','true')})`);
+        await evaluate(`document.querySelectorAll('[data-disclosure="hint"],[data-disclosure="solution"]').forEach(button=>{document.getElementById(button.getAttribute('aria-controls')).hidden=false;button.setAttribute('aria-expanded','true')})`);
       }
       if (topic.collection.id === 'tmua') assert.equal(await evaluate(`document.querySelectorAll('.exercise-options li').length`), 5 * topic.exercises.length);
       const layout = await evaluate(`({width:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,math:document.querySelectorAll('math').length,fractions:document.querySelectorAll('mfrac').length,buttons:[...document.querySelector('.exercise-buttons').children].map(x=>({top:x.getBoundingClientRect().top,height:x.getBoundingClientRect().height}))})`);
@@ -210,11 +322,6 @@ try {
   assert.equal(await evaluate(`document.querySelector('[data-extensions]').open`), false);
   results.push('Every technique has a highlighted core; extensions start collapsed and support native keyboard toggling.');
 
-  const home = async () => {
-    await evaluate(`location.hash='#/'`);
-    await waitFor(`document.querySelector('#topic-search')`);
-  };
-  const search = (query) => evaluate(`{const input=document.querySelector('#topic-search');input.focus();input.value=${JSON.stringify(query)};input.dispatchEvent(new InputEvent('input',{bubbles:true}))}`);
   await home();
   await search('因式分解');
   const tags = await evaluate(`[...document.querySelectorAll('[data-search-result]')].slice(0,2).map(result=>result.querySelector('.competition-tag').textContent)`);
@@ -305,8 +412,9 @@ try {
   assert.equal(await evaluate(`document.querySelector('.exercise-answer')?.textContent`), 'Answer: D');
   await click('[data-mark-technique]');
   await click('.review-button');
+  await setReview('.exercise', 'reviewed');
   await send('Page.reload');
-  await waitFor(`document.querySelector('.technique-mark')?.getAttribute('aria-pressed')==='true' && document.querySelector('.review-button')?.getAttribute('aria-pressed')==='true'`);
+  await waitFor(`document.querySelector('.technique-mark')?.getAttribute('aria-pressed')==='true' && document.querySelector('[data-review-problem]')?.value==='reviewed'`);
   await click('.solution-button');
   await evaluate(`document.querySelector('#practice').scrollIntoView({behavior:'instant'})`);
   await screenshot('admissions-tmua-practice-mobile');

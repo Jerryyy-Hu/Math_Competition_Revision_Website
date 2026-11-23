@@ -65,10 +65,15 @@ const rationalOrbit = paper(2008, 2009, 5, 'Rational orbits that repeat',
 
 const digitOrders = paper(2006, 2007, 3, 'One prescribed digit order',
   tex`Count permutations of the digits \(1,\ldots,9\) in which \(1,2,3,4,5\) appear in that relative order but \(1,2,3,4,5,6\) do not.`,
-  '先只固定前五个数字的相对顺序，再减去六个数字也恰好有序的情况。', [
+  '先数满足前一句的排列，再减去六个数字也按顺序的排列。六个数字有序时，前五个必然有序，所以被减掉的确实是第一类的子集。', [
     tex`Every possible relative order of five designated digits occurs equally often, so \(\frac{9!}{5!}\) permutations place \(1,\ldots,5\) in increasing relative order.`,
     tex`Among them, exactly \(\frac{9!}{6!}\) also place \(1,\ldots,6\) in increasing relative order. Subtracting gives \(3024-504=2520\).`,
   ]);
+digitOrders.firstStep = {
+  prompt: 'Which relative order is required, and which stricter order must be excluded?',
+  notice: '圈出题目里的两个条件。前五个数字要按指定先后出现，而加上第六个以后不能仍按该顺序出现。两条都只限制相对顺序，数字之间可以插入其他数字。',
+  setup: tex`固定五个指定数字占据的五个位置。这五个数字有 \(5!\) 种排法，其中只有一种合格，所以可从 \(9!/5!\) 开始。对六个数字用同样的理由，写出要减掉的项。`,
+};
 
 const scoreLists = paper(2009, 2010, 3, 'Non-increasing marks',
   tex`Six integer scores, each between \(0\) and \(10\), are listed in non-increasing order. How many different score lists are possible?`,
@@ -79,19 +84,29 @@ const scoreLists = paper(2009, 2010, 3, 'Non-increasing marks',
 
 const hotelRooms = paper(2014, 2015, 3, 'Seven non-adjacent rooms',
   tex`A corridor has ten rooms on each side. Count selections of seven rooms with no two selected rooms adjacent on the same side.`,
-  '按一侧选了几间分类；一行不相邻选取可以压缩必须留下的空位。', [
+  '按左侧选了几间分类。选定数量后，两侧可以分别计数；同一侧每对相邻选中的房间之间至少有一间空房，可以先扣掉这些必留的空位。', [
     tex`Selecting \(k\) non-adjacent positions from ten gives \(\binom{11-k}{k}\): for positions \(x_1<\cdots<x_k\), replace \(x_i\) by \(x_i-(i-1)\).`,
     tex`At most five rooms can be selected per side, so one side must contain \(k=2,3,4,5\) selections. The two sides are distinguishable and independent once \(k\) is fixed.`,
     tex`The total is \[\sum_{k=2}^{5}\binom{11-k}{k}\binom{4+k}{7-k}=2\left(\binom92\binom65+\binom83\binom74\right)=4352.\]`,
   ]);
+hotelRooms.firstStep = {
+  prompt: 'Where does the adjacency rule apply, and what still connects the two sides?',
+  notice: '相邻限制只发生在同一侧。两侧唯一共同的条件是选中房间的总数为七。',
+  setup: tex`设左侧选 \(k\) 间。单侧把选中位置记为 \(x_1<\cdots<x_k\)，令 \(y_i=x_i-(i-1)\)。检查原来的间距条件在新编号下为何只要求严格递增。`,
+};
 
 const holiday = paper(2013, 2014, 4, 'A nine-day schedule',
   tex`Each of nine days is assigned surfing, water skiing, or rest. Different water sports may not occupy consecutive days. How many schedules satisfy this rule?`,
-  '按最后一天是休息还是某一种水上运动分类，保留足以决定下一天选择的状态。', [
+  '按最后一天是休息、冲浪还是滑水分类。同样结尾的合规日程有完全相同的下一日选项，因此计数时只需保留结尾类别。', [
     tex`Let \(T_n\) count valid schedules of length \(n\), and let \(R_n,S_n,W_n\) count those ending in rest, surfing, and water skiing. Symmetry gives \(S_n=W_n\), and \[R_n=T_{n-1},\quad S_n=R_{n-1}+S_{n-1}.\]`,
     tex`For \(n\ge2\), these imply \(T_n=2T_{n-1}+T_{n-2}\), with \(T_0=1\) and \(T_1=3\).`,
     tex`The successive totals are \(1,3,7,17,41,99,239,577,1393,3363\). Therefore there are \(3363\) schedules.`,
   ]);
+holiday.firstStep = {
+  prompt: 'What information about a valid schedule determines which activities can follow it?',
+  notice: '题目只限制相邻两天。向一个合规日程追加一天时，只需要检查新的一天与原来的最后一天。',
+  setup: tex`记 \(R_n,S_n,W_n\) 为长度 \(n\) 且分别以休息、冲浪、滑水结尾的合规日程数。任何合规日程都能接一个休息日。接冲浪日时，哪些结尾可以保留？`,
+};
 
 const bags = paper(2011, 2012, 4, 'Emptying two bags',
   tex`Two bags initially contain \(m,n\) balls respectively, where \(m,n\) are positive integers. A move either removes equally many balls from both or doubles one bag's contents. Can both bags always be emptied? What if doubling is replaced by tripling?`,
@@ -103,11 +118,16 @@ const bags = paper(2011, 2012, 4, 'Emptying two bags',
 
 const redParity = paper(2010, 2011, 4, 'Even and odd red counts',
   tex`Each cell of an \(8\times8\) board receives a red, white, or blue counter. Are there more colourings with an even red count or with an odd red count?`,
-  '给格子固定顺序，尝试找到一个可逆的局部换色操作；注意唯一不能操作的情形。', [
+  '给格子固定顺序，从第一个非蓝格入手，在红白间互换。这个格子互换后仍然是第一个非蓝格，因此再做一次就能回到原着色。', [
     tex`Fix an ordering of the \(64\) cells. In every colouring other than the all-blue colouring, locate the first non-blue counter and swap red with white there.`,
     tex`This operation is its own inverse and changes the parity of the red count. It pairs every such even-red colouring with exactly one odd-red colouring.`,
     tex`The all-blue colouring is unpaired and has zero red counters. There is therefore exactly one more even-red colouring. Equivalently, the two counts are \(\frac{3^{64}+1}{2}\) and \(\frac{3^{64}-1}{2}\).`,
   ]);
+redParity.firstStep = {
+  prompt: 'What single change flips red parity, and how could you undo the same change?',
+  notice: '把一个红格变白，或把一个白格变红，都会翻转红色格数的奇偶性。要把两类配对，还需要能从新着色找回刚才改动的格子。',
+  setup: '用固定顺序找到第一个非蓝格，把原着色与互换红白后的着色配成一对。再找出哪种着色没有非蓝格，并检查它的奇偶性。',
+};
 
 const sequenceDifferences = paper(2023, 2024, 2, 'Consecutive endpoints',
   tex`An integer sequence obeys \(a_i\in\{2a_{i-1}-a_{i-2},\,2a_{i-2}-a_{i-1}\}\) for \(i\ge2\). If \(a_{2023}\) and \(a_{2024}\) are consecutive integers, prove the same of \(a_0,a_1\).`,
