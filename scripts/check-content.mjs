@@ -9,9 +9,19 @@ import { techniqueId, techniqueKey, problemKey } from '../site/dist/study-state.
 const preferences = { saved: [], read: [], markedTechniques: [], reviewedProblems: [], last: null };
 assert.equal(collections.length, 5);
 assert.equal(topicMap.size, allTopics.length, 'Topic routes must be unique.');
-assert.equal(totals.topics, 71);
+assert.equal(totals.topics, 73);
 assert(totals.exercises >= 74);
-assert.deepEqual(collections.find((collection) => collection.id === 'bmt').subjects.map((subject) => subject.name), ['Algebra', 'Calculus', 'Discrete', 'Geometry', 'Team Rounds']);
+const bmt = collections.find((collection) => collection.id === 'bmt');
+assert.deepEqual(bmt.subjects.map((subject) => subject.name), ['Algebra', 'Calculus', 'Discrete', 'Geometry', 'Team Rounds']);
+const geometryAdditions = new Map([
+  ['bmt/geometry/essential-models', '必备模型'],
+  ['bmt/geometry/conic-sections', '圆锥曲线'],
+]);
+const geometryHtml = subjectPage(bmt, bmt.subjects.find((subject) => subject.id === 'geometry'), preferences);
+for (const [key, title] of geometryAdditions) {
+  assert.equal(topicMap.get(key)?.title, title);
+  assert(geometryHtml.includes(`href="#/${key}"`));
+}
 assert.equal(resolveTopicKey('bmt/number-theory/congruences'), 'bmt/discrete/discrete-structures');
 const hasChinese = (value) => /[\u3400-\u9fff]/u.test(value);
 
@@ -32,7 +42,10 @@ for (const topic of allTopics) {
     continue;
   }
   assert(topic.bullets.length >= 4);
-  if (['bmo', 'bmt'].includes(topic.collection.id)) {
+  if (geometryAdditions.has(topic.key)) {
+    assert(topic.exercises.length >= 2 && topic.exercises.every((problem) => problem.origin === 'original' && !problem.source));
+    assert(renderedTopic.includes('Original drill'));
+  } else if (['bmo', 'bmt'].includes(topic.collection.id)) {
     assert(topic.exercises.filter((problem) => problem.source).length >= 2, `Existing competition topics retain official practice: ${topic.key}`);
   } else {
     assert(topic.exercises.length >= 2 && topic.exercises.every((problem) => problem.origin === 'original'), `Admissions chapters need labelled original drills: ${topic.key}`);
@@ -76,7 +89,7 @@ const tree = indexTree('bmo/combinatorics/counting');
 for (const topic of allTopics) assert(tree.includes(`href="#/${topic.key}"`), `Missing index destination: ${topic.key}`);
 assert(tree.includes('aria-current="page"'));
 assert.equal(escapeHtml('<script>"x"</script>'), '&lt;script&gt;&quot;x&quot;&lt;/script&gt;');
-assert(homePage(preferences).includes('71 topics'));
+assert(homePage(preferences).includes('73 topics'));
 assert(reviewPage().includes('BMO1 2024'));
 const html = readFileSync(new URL('../site/dist/index.html', import.meta.url), 'utf8');
 assert(html.includes('viewport-fit=cover'));

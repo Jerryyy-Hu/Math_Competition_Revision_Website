@@ -13,21 +13,21 @@ A mathematics study library with a collapsible competition → subject → topic
 ## Scope
 
 - **BMO:** 16 populated topics across algebra, combinatorics, geometry, and number theory.
-- **BMT:** 18 populated topics across Algebra, Calculus, Discrete, Geometry, and Team Rounds (Guts and Power). Discrete now contains ten technique-based categories covering all 60 main-test questions from 2020–2025 and all 15 Discrete tiebreaker questions listed for those years. The 2024 archive does not list a Discrete tiebreaker.
+- **BMT:** 20 populated topics across Algebra, Calculus, Discrete, Geometry, and Team Rounds (Guts and Power). Discrete contains ten technique-based categories covering all 60 main-test questions from 2020–2025 and all 15 Discrete tiebreaker questions listed for those years. The 2024 archive does not list a Discrete tiebreaker. Geometry includes essential contest models and mainland high-school conic sections.
 - **TMUA:** 15 populated topics and 62 bilingual techniques across foundations/data, algebra/functions, geometry/calculus, and logic/proof. The framework maps MM1-MM8, M1-M7 and the Paper 2 argument/proof/error families in the official October 2026 / January 2027 specification.
 - **STEP:** 22 populated topics and 100 bilingual techniques across pure mathematics, mechanics, and probability/statistics. The framework follows the June 2026 onwards specification, distinguishing shared STEP 2/3 knowledge from individual STEP 3 additions.
 - **University Interview:** seven category entries, with no populated lessons or exercises.
 - **Language:** Chinese technique names alongside English terminology; Chinese explanations and hints; English questions and solutions.
-- **Practice:** 223 placements: 120 distinct official past-paper questions (29 BMO, 91 BMT) in 123 placements, 26 original/classical placements, and 74 original admissions drills. BMO/BMT retain at least two official exercises per topic. TMUA has 30 original five-option questions; STEP has 44 original linked-part exercises. Admissions drills are explicitly labelled original and are not full mocks or calibrated exam questions.
+- **Practice:** 237 placements, including 120 distinct official past-paper questions (29 BMO and 91 BMT) in 123 placements, 40 original or classical competition-library placements, and 74 original admissions drills. The two supplemental geometry topics use 14 labelled original drills. The other BMO and BMT topics each include at least two official exercises. TMUA has 30 original five-option questions and STEP has 44 original linked-part exercises.
 
 ## Features
 
 - Animated slide-out index: a modal overlay on mobile and a non-modal push sidebar from 1024px upward.
 - Reserved desktop margins keep content width and line wrapping constant when the sidebar is toggled.
-- All 333 techniques include a plain Chinese explanation, a highlighted core conclusion, a method, an illustrative example, and a specific pitfall.
+- All 353 techniques include a plain Chinese explanation, a highlighted core conclusion, a method, an illustrative example, and a specific pitfall.
 - BMT Discrete has 49 teaching techniques across ten categories. Each problem has one primary placement, Chinese approach guidance, an English worked solution, an initially hidden answer, and official PDF links with solution-page anchors. Secondary methods receive cross-references. A six-year index supports direct question navigation and native answer disclosures.
 - STEP/TMUA collection pages introduce the knowledge framework, dated specification baseline, study order, scope boundaries and an expandable prerequisite table. Topic pages link prerequisites and specifications; individual STEP 3 techniques and questions carry explicit scope labels.
-- 129 techniques have a native, initially collapsed `拓展` disclosure, containing 195 extension placements. The eight team-process techniques do not have artificial mathematical extensions. These counts include concepts shared between competitions.
+- 134 techniques have a native, initially collapsed `拓展` disclosure, containing 200 extension placements. These counts include concepts shared between competitions.
 - Factorisation has nine common identity families, including Sophie Germain, Euler's cubic identity, and cyclic differences. Fermat leads to Euler's totient theorem; Cauchy leads to Engel form, weighted power sums, power means, and Hölder, with conditions and equality cases.
 - Coverage additions include divisor count/sum/product, CRT, multiplicative order, binomial expansion, rearrangement, convexity, triangle trigonometry, angle bisectors, Menelaus, the mean value theorem, the fundamental theorem of calculus, and binomial probability.
 - Technique marks highlight the entire block and its corresponding reading-outline entry, and persist locally.
@@ -68,6 +68,7 @@ With the preview server running, `node scripts/check-browser.mjs` uses an existi
 - `site/dist/bmo-presentation.js`: bilingual BMO names and curated TeX conversion of the legacy notes.
 - `site/dist/bmo-past-papers.js`: independently restated official BMO practice and complete proofs.
 - `site/dist/bmt-content.js`: current BMT taxonomy, detailed notes, dated team rules, strategies, sourced practice, and old-route aliases.
+- `site/dist/bmt-geometry.js`: essential contest models, mainland high-school conic sections, bilingual techniques, and original worked drills.
 - `site/dist/bmt-discrete.js` and `bmt-discrete-problems.js`: the replacement Discrete taxonomy, shared foundational techniques, 75 independently restated official problems, worked solutions, and primary/secondary classifications. Installed after the legacy shared foundations are prepared; old Discrete exercises are replaced.
 - `site/dist/knowledge-additions.js`: new techniques and three independently authored practice problems, each placed in both relevant competitions.
 - `site/dist/knowledge-depth.js`: plain explanations, core conclusions, bilingual aliases, and scoped extensions for every populated technique. Profiles are shared where the mathematics is shared; calculus substitution and team formats have context-specific profiles.

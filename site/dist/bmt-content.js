@@ -1,4 +1,6 @@
 /** BMT study notes and independently restated official practice. */
+import { bmtGeometryTopics } from './bmt-geometry.js';
+
 const r = String.raw;
 const technique = (name, nameZh, text, method, example, pitfall, formula = '') => ({ name, nameZh, text, method, example, pitfall, formula });
 const problem = (year, round, number, title, question, hint, solution, proof = false) => ({
@@ -164,6 +166,7 @@ export const bmtCollection = {
         technique('Determinant area', '行列式面积', '坐标已知时，用行列式将三角形面积写成一个式子。', '保留带符号面积可追踪方向或相消，求实际面积时取绝对值。多边形可按顶点顺序使用鞋带公式。', r`顶点为 \((0,0),(4,0),(1,3)\) 的三角形面积为 \(\frac12\lvert4\cdot3\rvert=6\)。`, '顶点顺序必须沿边界排列；自交多边形的带符号面积不一定等于所求区域面积。', r`[ABC]=\frac12\left|\det\begin{pmatrix}x_B-x_A&y_B-y_A\\x_C-x_A&y_C-y_A\end{pmatrix}\right|`),
         technique('Lattice geometry', '格点几何与皮克定理', '简单格点多边形的面积可由内部点与边界点数求得。', '先核对全部顶点为整数点且边界不自交；边界点计数可用边的横纵坐标差的最大公因数，避免逐个数点。', r`\((0,0)\) 到 \((6,4)\) 的线段共有 \(\gcd(6,4)+1=3\) 个格点，包括两个端点。`, 'Pick’s theorem 用于平面简单格点多边形；有孔洞时公式需要调整，不能直接套用。', r`A=I+\frac B2-1`),
       ], [circleThroughTrisections, equilateralCoordinates]),
+      ...bmtGeometryTopics,
     ] },
     { id: 'team-rounds', name: 'Team Rounds', description: '区分现场轮次规则与团队协作建议。规则以所参加年度的官方文件为准。', topics: [
       topic('guts', 'Guts Round', '连续题组、现场提交与实时计分要求团队兼顾准确度和推进速度。', [

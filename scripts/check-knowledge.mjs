@@ -73,5 +73,23 @@ const [power] = searchKnowledge('BMT Power Q1.8').results;
 assert.equal(power.problem.source.question, 'Q1.8');
 const discrete = searchKnowledge('BMT 2025 Discrete Q1', Infinity).results.filter((result) => result.problem);
 assert(discrete.length && discrete.every((result) => result.problem.source.question === 'Q1'), 'Q1 must not match Q10.');
-assert.equal(totals.topics, 71, 'The eight additional BMT Discrete categories and all previous non-Discrete chapters must be available.');
-console.log(JSON.stringify({ techniques: techniques.length, techniquesWithExtensions: techniques.filter((item) => item.extensions.length).length, extensions: techniques.flatMap((item) => item.extensions).length, keywordAndRankingScenarios: scenarios.length, checks: 'passed' }, null, 2));
+const geometryScenarios = [
+  ['必备模型', 'essential-models'],
+  ['BMT 将军饮马', 'essential-models', 'Shortest path by reflection'],
+  ['Apollonius circle', 'essential-models', 'Circle of Apollonius'],
+  ['阿氏圆最值', 'essential-models', 'Circle of Apollonius', 'distance-on-a-circle'],
+  ['圆锥曲线', 'conic-sections'],
+  ['Conic sections', 'conic-sections'],
+  ['BMT 双曲线', 'conic-sections', 'Hyperbola'],
+  ['点差法', 'conic-sections', 'Chord midpoints by subtraction'],
+];
+for (const [query, id, name, extensionId] of geometryScenarios) {
+  const [result] = searchKnowledge(query).results;
+  assert.equal(result?.topic.key, `bmt/geometry/${id}`, query);
+  assert.equal(result.item?.name, name, query);
+  assert.equal(result.extension?.id, extensionId, query);
+  if (result.item) assert(result.href.includes(`technique=${techniqueId(result.item)}`), query);
+  if (extensionId) assert(result.href.includes(`extension=${extensionId}`), query);
+}
+assert.equal(totals.topics, 73, 'The BMT Discrete categories and both new geometry topics must be available.');
+console.log(JSON.stringify({ techniques: techniques.length, techniquesWithExtensions: techniques.filter((item) => item.extensions.length).length, extensions: techniques.flatMap((item) => item.extensions).length, keywordAndRankingScenarios: scenarios.length + geometryScenarios.length, checks: 'passed' }, null, 2));
